@@ -15,3 +15,19 @@
 ;; Clojure form with a name starting with do, you can assume that its purpose is related to side-effectful activities
 ;; like defining a var, printing, and so on.
 
+
+;; Locals
+;; ---------------------------------------------------------------------------------------------------------------------
+;; Clojure doesn't have local variables, but it does have locals; they just can't vary. Locals are created and their
+;; scope is defined using a let form, which starts with a vector that defines the bindings, followed by any number
+;; of expressions that make up the body. The vector begins with a binding form (usually a symbol), which is the name
+;; of a new local. This is followed by an expression whose value is bound to this new local for the remainder of
+;; the let form. You can continue pairing binding names and expressions to create as many locals as you need.
+;; All of them are available in the body of the let:
+(let [r         5
+      pi        3.1415
+      r-squared (* r r)]
+  (println "radius is" r)
+  (* pi r-squared))
+;; radius is 5
+;;=> 78.53750000000001

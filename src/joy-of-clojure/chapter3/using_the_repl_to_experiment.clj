@@ -136,3 +136,84 @@ frame
 
 ;; But just because you've succeeded doesn't mean you have to quit. You've built up some knowledge and a bit of a
 ;; toolbox, so why not play with it a little?
+
+;; For example, the pattern appears to cut off in the middle—perhaps you'd like to see more. Re-enter that last
+;; expression, but this time try larger limits:
+(doseq [[x y xor] (xors 500 500)]
+  (.setColor gfx (java.awt.Color. x y xor))
+  (.fillRect gfx x y 1 1))
+;; IllegalArgumentException Color parameter outside of expected range: Green Blue
+;; java.awt.Color.testColorValueRange (Color.java:310)
+
+;; Whoops. Something went wrong, but what exactly? This gives you a perfect opportunity to try one final REPL tool.
+;; When an exception is thrown from something you try at the REPL, the result is stored in a var named *e. This allows
+;; you to get more detail about the expression, such as the stack trace:
+(.printStackTrace *e)
+;; nil
+;; java.lang.IllegalArgumentException: Color parameter outside of expected range: Green Blue
+;;     at java.awt.Color.testColorValueRange(Color.java:310)
+;;     at java.awt.Color.<init>(Color.java:395)
+;;     at java.awt.Color.<init>(Color.java:369)
+;;     at sun.reflect.GeneratedConstructorAccessor1.newInstance(Unknown Source)
+;;     at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+;;     at java.lang.reflect.Constructor.newInstance(Constructor.java:526)
+;;     at clojure.lang.Reflector.invokeConstructor(Reflector.java:180)
+;;     at user$eval161.invoke(NO_SOURCE_FILE:4)
+;;     at clojure.lang.Compiler.eval(Compiler.java:6619)
+;;     at clojure.lang.Compiler.eval(Compiler.java:6582)
+;;     at clojure.core$eval.invoke(core.clj:2852)
+;;     at clojure.main$repl$read_eval_print__6588$fn__6591.invoke(main.clj:259)
+;;     at clojure.main$repl$read_eval_print__6588.invoke(main.clj:259)
+;;     at clojure.main$repl$fn__6597.invoke(main.clj:277)
+;;     at clojure.main$repl.doInvoke(main.clj:277)
+;;     at clojure.lang.RestFn.invoke(RestFn.java:421)
+;;     at clojure.main$repl_opt.invoke(main.clj:343)
+;;     at clojure.main$main.doInvoke(main.clj:441)
+;;     at clojure.lang.RestFn.invoke(RestFn.java:397)
+;;     at clojure.lang.Var.invoke(Var.java:411)
+;;     at clojure.lang.AFn.applyToHelper(AFn.java:159)
+;;     at clojure.lang.Var.applyTo(Var.java:532)
+;;     at clojure.main.main(main.java:37)
+
+;; That's a lot of text, but don't panic. Learning to read Java stack traces is useful, so let's pick it apart.
+;; The first thing to understand is the overall structure of the trace -- there are two "causes." The original or root
+;; cause of the exception is listed last -- this is the best place to look first. The name and text of the exception
+;; there are the same as the REPL printed for you in the first place, although they won't always be. So let's look at
+;; that next line:
+;; at java.awt.Color.testColorValueRange(Color.java:310)
+
+;; Like most lines in the stack trace, this has four parts -- the name of the class, the name of the method, the
+;; filename, and finally the line number:
+;; at <class>.<method or constructor>(<filename>:<line>)
+
+;; In this case, the function name is testColorValueRange, which is defined in Java's own Color.java file. Unless this
+;; means more to you than it does to us, let's move on to the next line:
+;; at java.awt.Color.<init>(Color.java:382)
+
+;; It appears that it was the Color's constructor (called <init> in stack traces) that called the test function you saw
+;; earlier. So now the picture is pretty clear -- when you constructed a Color instance, it checked the values you
+;; passed in, decided they were invalid, and threw an appropriate exception.
+
+;; To fix your invalid Color argument, you can adjust the doseq form to return only produce legal values using the rem
+;; function, which returns the remainder so you can keep the results under 256:
+(defn xors [xs ys]
+  (for [x (range xs) y (range ys)]
+    [x y (rem (bit-xor x y) 256)]))
+
+;; Note that you're redefining an existing function here. This is perfectly acceptable and well-supported behavior.
+;; Before moving on, create a function that takes a graphics object and clears it:
+(defn clear [g] (.clearRect g 0 0 500 500))
+
+;; Calling (clear gfx) clears the frame, allowing the doseq form you tried before to work perfectly.
+(clear gfx)
+
+;; Set the size to 500x500
+(.setSize frame (java.awt.Dimension. 500 500))
+
+;; Redefine gfx to get a fresh reference now that the frame is 500x500
+(def gfx (.getGraphics frame))
+
+(doseq [[x y xor] (xors 500 500)]
+  (.setColor gfx (java.awt.Color. xor xor xor))
+  (.fillRect gfx x y 1 1))
+

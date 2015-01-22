@@ -217,3 +217,34 @@ frame
   (.setColor gfx (java.awt.Color. xor xor xor))
   (.fillRect gfx x y 1 1))
 
+;; The bit-xor function does produce an interesting image, but it would be fun to explore what different functions look
+;; like. Try adding another parameter to xors so that you can pass in whatever function you'd like to look at. Because
+;; it’s not just bit-xor anymore, change the name while you're at it:
+(defn f-values [f xs ys]
+  (for [x (range xs) y (range ys)]
+    [x y (rem (f x y) 256)]))
+
+;; You might as well wrap your call to setSize, clear, and the doseq form in a function as well:
+(defn draw-values [f xs ys]
+  (clear gfx)
+  (.setSize frame (java.awt.Dimension. xs ys))
+  (doseq [[x y v] (f-values f xs ys)]
+    (.setColor gfx (java.awt.Color. v v v))
+    (.fillRect gfx x y 1 1)))
+
+;; This allows you to try different functions and ranges easily. Try to see what patterns emerge from the following:
+(draw-values bit-and 256 256)
+(draw-values + 256 256)
+(draw-values * 256 256)
+(draw-values (fn [x y] x) 256 256)
+(draw-values (fn [x y] y) 256 256)
+(draw-values (fn [x y] (int (/ (+ x y) 2))) 256 256)
+
+;; If this were the beginning or some awkward middle stage of a large project, you'd have succeeded in pushing past this
+;; troubling point and could now take the functions you've built and drop them into the larger project.
+
+;; By trying everything out at the REPL, you're encouraged to try smaller pieces rather than larger ones. The smaller
+;; the piece, the shorter the distance down an incorrect path you're likely to go. Not only does this reduce the overall
+;; development time, but it provides developers more frequent successes that can help keep morale and motivation high
+;; through even tough stages of a project. But trial-and-error exploration isn't enough. An intuitive basis in Clojure
+;; is also needed to become highly effective.

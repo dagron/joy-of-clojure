@@ -1,6 +1,6 @@
 ;; Destructuring with a map
 ;; ---------------------------------------------------------------------------------------------------------------------
-;; Perhaps passing a name as a three-part vector wasn’t a good idea in the first place. It might be better stored in
+;; Perhaps passing a name as a three-part vector wasn't a good idea in the first place. It might be better stored in
 ;; a map:
 (def guys-name-map
   {:first "Guy" :middle "Lewis" :last "Steele"})

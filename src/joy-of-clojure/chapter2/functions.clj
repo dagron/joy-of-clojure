@@ -55,13 +55,13 @@
 (make-set 42)
 ;;=> #{42}
 
-;; As you saw, arguments to functions are bound one for one to symbols during the function call, but there’s a way for
+;; As you saw, arguments to functions are bound one for one to symbols during the function call, but there's a way for
 ;; functions to accept a variable number of arguments:
 (make-set 1 2 3)
 ;; ArityException Wrong number of args passed...
 
 
-;; As shown, calling the make-set function with three arguments won’t work. But what if you want it to take any number
+;; As shown, calling the make-set function with three arguments won't work. But what if you want it to take any number
 ;; of arguments? The way to denote variable arguments is to use the & symbol followed by symbols or destructuring forms.
 ;; Every symbol in the arguments list before the & is still bound one for one to the same number of arguments passed
 ;; during the function call. But any additional arguments are aggregated in a sequence bound to the symbol following

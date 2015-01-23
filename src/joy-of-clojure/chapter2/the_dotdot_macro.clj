@@ -1,11 +1,11 @@
 ;; The .. macro
 ;; ---------------------------------------------------------------------------------------------------------------------
-;; When working with Java, it’s common practice to chain together a sequence of method calls on the return type of the
+;; When working with Java, it's common practice to chain together a sequence of method calls on the return type of the
 ;; previous method call:
 
 ;; new java.util.Date().toString().endsWith("2014")" /* Java code */
 
-;; Using Clojure’s dot special operator, the following code is equivalent:
+;; Using Clojure's dot special operator, the following code is equivalent:
 (.endsWith (.toString (java.util.Date.)) "2014") ; Clojure code
 ;;=> true
 ;; (Depending on when you run this code, you may get false as the answer. To fix that, change the string "2014" to

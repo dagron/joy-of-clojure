@@ -42,7 +42,7 @@
     (println x)
     (recur (dec x))))
 
-;; This is nearly identical to how you’d structure a while loop in an imperative language. One significant difference is
+;; This is nearly identical to how you'd structure a while loop in an imperative language. One significant difference is
 ;; that the value of x isn't decremented somewhere in the body of the loop. Instead, a new value is calculated
 ;; as a parameter to recur, which immediately does two things: rebinds x to the new value and returns control to the top
 ;; of print-down-from.
@@ -69,7 +69,7 @@
 
 ;; Sometimes you want to loop back not to the top of the function, but to somewhere inside it. For example,
 ;; in sum-down-from, you might prefer that callers not have to provide an initial value for sum. To help, there's a loop
-;; form that acts exactly like let but provides a target for recur to jump to. It’s used like this:
+;; form that acts exactly like let but provides a target for recur to jump to. It's used like this:
 (defn sum-down-from [initial-x]
   (loop [sum 0, x initial-x]
     (if (pos? x)

@@ -26,7 +26,7 @@
 (print-seq [])
 ;;=> nil
 
-;; Second, rest is used instead of next to consume the sequence on the recursive call. Although they’re nearly identical
+;; Second, rest is used instead of next to consume the sequence on the recursive call. Although they're nearly identical
 ;; in behavior, rest can return a sequence that's either empty or not empty (has elements), but it never returns nil. On
 ;; the other hand, next returns a seq of the rest, or (seq (rest s)), and thus never returns an empty sequence,
 ;; returning nil in its place. It's appropriate to use rest here because you're using seq explicitly in each subsequent

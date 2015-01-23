@@ -65,7 +65,7 @@ frame
 
 ;; Well, you have a Frame object, but perhaps the reason you can't see it is hinted at by the word hidden in the
 ;; #<Frame...> printout. Perhaps the Frame has a method you need to call to make it visible. One way to find out would
-;; be to check the Javadoc of the object, but because you're at the REPL already, let's try something else. You’ve
+;; be to check the Javadoc of the object, but because you're at the REPL already, let's try something else. You've
 ;; already seen how the for macro works, so maybe you can check a class for which methods it has to see whether one you
 ;; can use is available:
 (for [meth (.getMethods java.awt.Frame) ;; Iterater over class methods
@@ -107,7 +107,7 @@ frame
 ;;=> #'user/gfx
 
 ;; Then, to draw, you can try out the fillRect method of that graphics context. If you're trying this yourself, make
-;; sure the blank window is positioned so that it's unobscured while you’re typing into your REPL:
+;; sure the blank window is positioned so that it's unobscured while you're typing into your REPL:
 (.fillRect gfx 100 100 50 75)
 
 ;; And just like that, you're drawing on the screen interactively. You should see a single black rectangle in the
@@ -123,7 +123,7 @@ frame
 ;; (depending on your OS and window manager). This is an artifact of this limited experiment and can be avoided using
 ;; the full Java Swing capabilities.
 
-;; What’s left to do? Use the graphics functions you just saw to draw the xor values:
+;; What's left to do? Use the graphics functions you just saw to draw the xor values:
 (doseq [[x y xor] (xors 200 200)]
   (.setColor gfx (java.awt.Color. xor xor xor))
   (.fillRect gfx x y 1 1))
@@ -219,7 +219,7 @@ frame
 
 ;; The bit-xor function does produce an interesting image, but it would be fun to explore what different functions look
 ;; like. Try adding another parameter to xors so that you can pass in whatever function you'd like to look at. Because
-;; it’s not just bit-xor anymore, change the name while you're at it:
+;; it's not just bit-xor anymore, change the name while you're at it:
 (defn f-values [f xs ys]
   (for [x (range xs) y (range ys)]
     [x y (rem (f x y) 256)]))

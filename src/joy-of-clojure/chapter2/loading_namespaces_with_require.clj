@@ -3,7 +3,7 @@
 ;; Creating a namespace at the REPL is straightforward. But just because you've created one and populated it with useful
 ;; functions doesn't mean its awesomeness is available for use by any other namespace you create. Instead, in order
 ;; to use functions from any given namespace, you need to load it from disk. But how do you load namespaces?
-;; Clojure provides the convenience directive :require to take care of this task. Here’s an example:
+;; Clojure provides the convenience directive :require to take care of this task. Here's an example:
 (ns joy.req
   (:require clojure.set))
 

@@ -61,12 +61,12 @@ yucky-pi
 :2
 :?
 :ThisIsTheNameOfaKeyword
-;; Although keywords are prefixed by a colon :, it’s only part of the literal syntax and not part of the name itself.
+;; Although keywords are prefixed by a colon :, it's only part of the literal syntax and not part of the name itself.
 
 
 ;; Strings
 ;; ---------------------------------------------------------------------------------------------------------------------
-;; trings in Clojure are represented similarly to the way they’re used in many program- ming languages. A string is any
+;; trings in Clojure are represented similarly to the way they're used in many program- ming languages. A string is any
 ;; sequence of characters enclosed within a set of double quotes, including newlines, as shown:
 "This is a string"
 "This is also a

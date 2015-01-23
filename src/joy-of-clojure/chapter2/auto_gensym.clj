@@ -6,5 +6,5 @@
 `potion#
 ;;=> potion__17__auto__
 
-;; Sometimes even this isn’t enough, either because you need to refer to the same symbol in multiple syntax-quotes or
-;; because you want to capture a particular unqualified symbol. We’ll talk more about this circumstance later.
+;; Sometimes even this isn't enough, either because you need to refer to the same symbol in multiple syntax-quotes or
+;; because you want to capture a particular unqualified symbol. We'll talk more about this circumstance later.

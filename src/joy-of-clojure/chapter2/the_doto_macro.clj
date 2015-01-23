@@ -15,4 +15,4 @@
   (.put "BIN"  "classes"))
 ;;=> {"HOME" "/home/me", "BIN" "classes", "SRC" "src"}
 
-;; These kinds of Java and Clojure comparisons are useful for understanding Clojure’s interoperability offerings.
+;; These kinds of Java and Clojure comparisons are useful for understanding Clojure's interoperability offerings.

@@ -1,4 +1,4 @@
-(defproject app "0.1.0"
+(defproject joy-of-clojure "0.1.0"
   :description "My Learnings as I work through Joy of Clojure 2nd Ed."
   :url "https://github.com/danielmiladinov/joy-of-clojure"
   :license {:name "Eclipse Public License"

@@ -66,7 +66,7 @@ yucky-pi
 
 ;; Strings
 ;; ---------------------------------------------------------------------------------------------------------------------
-;; trings in Clojure are represented similarly to the way they're used in many program- ming languages. A string is any
+;; trings in Clojure are represented similarly to the way they're used in many programming languages. A string is any
 ;; sequence of characters enclosed within a set of double quotes, including newlines, as shown:
 "This is a string"
 "This is also a

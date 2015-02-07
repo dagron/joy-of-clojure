@@ -9,8 +9,8 @@
 ;; accidentally it can lead to unexpected and obscure errors. You should take care when naming locals and defining new
 ;; functions so that name-shadowing complications can be avoided.
 
-;; Because name-shadowing errors tend to be rare, the benefits of a simplified mechanism for calling and passing first-
-;; class functions far outweigh the detriments. Clojure's adoption of a Lisp-1 resolution scheme makes for cleaner
+;; Because name-shadowing errors tend to be rare, the benefits of a simplified mechanism for calling and passing
+;; first-class functions far outweigh the detriments. Clojure's adoption of a Lisp-1 resolution scheme makes for cleaner
 ;; implementations and therefore highlights the solution rather than muddying the waters with the nuances of symbolic
 ;; lookup. For example, the best function highlights this perfectly in the way that it takes the greater-than function
 ;; > and calls it in its body as f:

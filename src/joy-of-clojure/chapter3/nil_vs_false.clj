@@ -8,5 +8,5 @@
 ;;=> "Actually false, not nil"
 
 ;; Keeping in mind the basic rule that everything in Clojure is truthy unless it's false or nil is an astonishingly
-;; powerful concept, allowing for elegant solutions. Often pro- gramming languages have complicated semantics for
+;; powerful concept, allowing for elegant solutions. Often programming languages have complicated semantics for
 ;; truthiness, but Clojure manages to avoid those matters nicely.

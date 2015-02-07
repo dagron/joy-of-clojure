@@ -44,8 +44,8 @@
 
 ;; Functions with multiple arities
 ;; ---------------------------------------------------------------------------------------------------------------------
-;; Arity refers to the differences in the argument count that a function will accept. Changing the previous simple set-
-;; creating function to accept either one or two arguments is represented as
+;; Arity refers to the differences in the argument count that a function will accept. Changing the previous simple
+;; set-creating function to accept either one or two arguments is represented as
 (defn make-set
   ([x]   #{x})
   ([x y] #{x y}))

@@ -1,6 +1,6 @@
 ;; Truncation
 ;; ---------------------------------------------------------------------------------------------------------------------
-;; Truncation refers to limiting accuracy for a floating-point number based on a defi- ciency in the corresponding
+;; Truncation refers to limiting accuracy for a floating-point number based on a deficiency in the corresponding
 ;; representation. When a number is truncated, its precision is limited such that the maximum number of digits of
 ;; accuracy is bound by the number of bits that can "fit" into the storage space allowed by its representation. For
 ;; floating-point values, Clojure truncates by default. Therefore, if high precision is required for your floating-point

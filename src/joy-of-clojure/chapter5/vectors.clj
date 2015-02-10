@@ -197,3 +197,36 @@ a-to-j
 ;;  For each neighbor coordinate returned from neighbors, you use get-in to retrieve the value at that point. The
 ;; position [0 0] corresponding to the value 1 has the neighboring values 4 and 2. You'll use neighbors again later; but
 ;; next we'll look at growing and shrinking vectors -- treating them like stacks.
+
+;; Vectors as stacks
+;; -----------------
+;; Classic stacks have at least two operations, push and pop. With respect to Clojure vectors, these operations are
+;; called conj and pop, respectively. The conj function adds elements to, and pop removes elements from, the right side
+;; of the stack. Because vectors are immutable, pop returns a new vector with the rightmost item dropped -- this is
+;; different from many mutable stack APIs, which generally return the dropped item. Consequently, peek becomes more
+;; important as the primary way to get an item from the top of the stack:
+(def my-stack [1 2 3])
+
+(peek my-stack)
+;;=> 3
+
+(pop my-stack)
+;;=> [1 2]
+
+(conj my-stack 4)
+;;=> [1 2 3 4]
+
+(+ (peek my-stack) (peek (pop my-stack)))
+;;=> 5
+
+;; Each of these operations completes in essentially constant time. Most of the time, a vector that's used as a stack is
+;; used that way throughout its life. It's helpful to future readers of your code to keep this is mind and use the stack
+;; operations consistently, even when other functions might work. For example, last on a vector returns the same thing
+;; as peek; but besides being slower, it leads to unnecessary confusion about how the collection is being used. If the
+;; algorithm involved calls for a stack, use conj, not assoc, for growing the vector; peek, not last; and pop, not
+;; dissoc, for shrinking it.
+
+;; Any object that implements clojure.lang.IPersistentStack can use the functions conj, pop, and peek. In addition to
+;; vectors, Clojure lists also implement this interface, but the functions operate on the left side of lists instead of
+;; the right side as with vectors. When operating on either via the stack discipline, it's best to ignore the ordering,
+;; because it tends to add confusion.

@@ -230,3 +230,40 @@ a-to-j
 ;; vectors, Clojure lists also implement this interface, but the functions operate on the left side of lists instead of
 ;; the right side as with vectors. When operating on either via the stack discipline, it's best to ignore the ordering,
 ;; because it tends to add confusion.
+
+;; Using vectors instead of reverse
+;; --------------------------------
+;; The ability of vectors to grow efficiently on the right side and then be walked right to left produces a noteworthy
+;; emergent behavior: you rarely need the reverse function. This is different from most Lisps and schemes. When
+;; processing a list, it's pretty common to want to produce a new list in the same order. But if all you have are
+;; classic Lisp lists, often the most natural algorithm leaves you with a backward list that needs to be reversed.
+;; Here's an example of a function similar to Clojure's map:
+(defn strict-map1 [f coll]
+  (loop [coll coll, acc nil]                                ; Accumulator starts as nil
+    (if (empty? coll)
+      (reverse acc)                                         ; Final result is reversed
+      (recur (next coll)
+             (cons (f (first coll)) acc)))))                ; Put the element onto the front of the accumulator
+
+(strict-map1 - (range 5))
+;;=> (0 -1 -2 -3 -4)
+
+;; This is adequate code, except for that glaring reverse of the final return value. After the entire list has been
+;; walked once to produce the desired values, reverse walks it again to get the values in the right order. This is both
+;; inefficient and unnecessary. One way to get rid of the reverse is to use a vector instead of a list as the
+;; accumulator:
+
+(defn stric-map2 [f coll]
+  (loop [coll coll acc []]                                  ; Accumulator now starts as a vector
+    (if (empty? coll)
+      acc                                                   ; Final result is unchanged
+      (recur (next coll)
+             (conj acc (f (first coll)))))))                ; Put the element onto the rear of the vector accumulator
+
+(stric-map2 - (range 5))
+;;=> [0 -1 -2 -3 -4]
+
+;; A small change, but the code is now a touch cleaner and faster. It does return a vector instead of a list, but this
+;; is rarely a problem, because any client code that wants to treat this as a seq can usually do so automatically.
+;; The examples we've shown so far have all been plain vectors, but we'll turn now to the special features of some other
+;; vector types, starting with subvectors.

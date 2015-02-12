@@ -267,3 +267,19 @@ a-to-j
 ;; is rarely a problem, because any client code that wants to treat this as a seq can usually do so automatically.
 ;; The examples we've shown so far have all been plain vectors, but we'll turn now to the special features of some other
 ;; vector types, starting with subvectors.
+
+;; Subvectors
+;; ----------
+;; Although items can't be removed efficiently from a vector (except the rightmost item), Clojure provide a fast way to
+;; take a slice of an existing vector such as a-to-j (previously defined as [\A \B \C \D \E \F \G \H \I \J]) based on
+;; start and end indices with the subvec function:
+(subvec a-to-j 3 6)
+;;=> [\D \E \F]
+
+;; The first index given to subvec is inclusive (starts at index 3), but the second is exclusive (ends before index 6).
+;; The new subvector internally hangs on to the entire original a-to-j vector, making each lookup performed on the new
+;; vector cause the subvector to do a little offset math and then look it up in the original. This makes creating a
+;; subvector fast. You can use subvec on any kind of vector, and it'll work fine. But there's special logic for taking
+;; a subvec of a subvec, in which case the newest subvector keeps a reference to the original vector, not the
+;; intermediate subvector. This prevents subvectors of subvectors from stacking up needlessly, and it keeps both the
+;; creation and use of the sub-subvecs fast and efficient.

@@ -283,3 +283,34 @@ a-to-j
 ;; a subvec of a subvec, in which case the newest subvector keeps a reference to the original vector, not the
 ;; intermediate subvector. This prevents subvectors of subvectors from stacking up needlessly, and it keeps both the
 ;; creation and use of the sub-subvecs fast and efficient.
+
+;; Vectors as map entries
+;; ----------------------
+;; Clojure's hash map, just like hash tables or dictionaries in many other languages, has a mechanism to iterate through
+;; the entire collection. Clojure's solution for this iterator is, unsurprisingly, a seq. Each item of this seq needs to
+;; include both the key and the value, so they're wrapped in a map entry. When printed, each entry looks like a vector:
+(first {:width 10, :height 20, :depth 15})
+;;=> [:width 10] ; Map entry order isn't guaranteed, you may get different results depending on your clojure version
+
+;; But not only does a map entry look like a vector, it really is one:
+(vector? (first {:width 10, :height 20, :depth 15}))
+;;=> true
+
+;; This means you can use all the regular vector functions on it: conj, get, and so on. It even supports destructuring,
+;; which can be handy. For example, the following locals dimension and amount take on the value of each key/value pair
+;; in turn:
+(doseq [[dimension amount] {:width 10, :height 20, :depth 15}]
+  (println (str (name dimension) ":") amount "inches"))
+;; width: 10 inches
+;; depth: 15 inches
+;; height: 20 inches
+;;=> nil
+
+;; A MapEntry is its own type and has two functions for retrieving its contents: key and val, which do exactly the same
+;; thing as (nth my-map 0) and (nth my-map 1), respectively. These are sometimes useful for the clarity they can bring
+;; to your code, but frequently destructuring is used instead, because it's so darned handy.
+
+;; Now you know what vectors are, what specific kinds of vectors are included in Clojure, and some of the things
+;; they're good at doing. To round out your understanding of vectors, we'll conclude with a brief look at things that
+;; vectors are bad at doing.
+

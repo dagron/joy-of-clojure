@@ -314,3 +314,41 @@ a-to-j
 ;; they're good at doing. To round out your understanding of vectors, we'll conclude with a brief look at things that
 ;; vectors are bad at doing.
 
+;; What vectors aren't
+;; -------------------
+;; Vectors are versatile, but there are some commonly desired patterns for which they might seem like a good solution
+;; but in fact aren't. Although we prefer to focus on the positive, we hope a few negative examples will help you avoid
+;; using the wrong tool for the job.
+
+;; Vectors aren't sparse
+;; If you have a vector of length n, the only position where you can insert a value is at index n—appending to the
+;; far-right end. You can't skip some indices and insert at a higher index number. If you want a collection indexed by
+;; nonsequential numbers, consider a hash map or sorted map. Although you can replace values in a vector, you can't
+;; insert or delete items such that indices for the subsequent items would have to be adjusted. Clojure doesn't
+;; currently have a native persistent collection that supports this kind of operation, but a Clojure contrib library
+;; aptly named data.finger-tree supporting a structure called finger trees may help for these use cases.
+
+;; Vectors aren't queues
+;; Some people have tried to use vectors as queues. One approach would be to push items onto the right end of the vector
+;; using conj and then to pop items off the left using rest or next. The problem with this is that rest and next return
+;; seqs, not vectors, so subsequent conj operations wouldn't behave as desired. Using into to convert the seq back into
+;; a vector is O(n), which is less than ideal for every pop.
+
+;; Another approach is to use subvec as a "pop", leaving off the leftmost item. Because subvec does return a vector,
+;; subsequent conj operations will push onto the right end as desired. But as explained earlier, subvec maintains a
+;; reference to the entire underlying vector, so none of the items being popped this way will ever be garbage collected.
+;; Also less than ideal.
+
+;; So what would be the ideal way to do queue operations on a persistent collection? Why, use a PersistentQueue,
+;; of course. More on them later.
+
+;; Vectors aren't sets
+;; If you want to find out whether a vector contains a particular value, you might be tempted to use the contains?
+;; function, but you'd be disappointed by the results. Clojure's contains? is for asking whether a particular key, not
+;; value, is in a collection. So for a vector, the "keys" are the indices of its elements (the first element is at index
+;; 0, and so on). Although it's sometimes useful to check whether an index is contained in a vector using contains?,
+;; more often than not you want to find a value.
+
+;; In this section, we showed how to create vectors using literal syntax or by building them up programmatically.
+;; We looked at how to push them, pop them, and slice them. We also looked at some of the things vectors can't do well.
+;; One of these is adding and removing items from the left side; although vectors can't do this, lists can.

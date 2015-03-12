@@ -56,5 +56,50 @@
 ;; The use of zipmap illustrates nicely the final property of map collections. Hash maps in Clojure have no order
 ;; guarantees. If you do require ordering, then you should use sorted maps, discussed next.
 
+;; Keeping your keys in order with sorted maps
+;; -------------------------------------------
+;; It's impossible to rely on a specific ordering of the key/value pairs for a standard Clojure map, because there are
+;; no order guarantees. Using the sorted-map and sorted-map-by functions, you can construct maps with order assurances.
+;; By default, the function sorted-map builds a map sorted by the comparison of its keys:
+(sorted-map :thx 1138 :r2d 2)
+;;=> {:r2d 2, :thx 1138}
+
+;; You may require an alternative key ordering, or perhaps an ordering for keys that aren't easily comparable. In these
+;; cases, you must use sorted-map-by, which takes an additional comparison function:
+(sorted-map "bac" 2 "abc" 9)
+;;=> {"abc" 9, "bac" 2}
+
+(sorted-map-by #(compare (subs %1 1) (subs %2 1)) "bac" 2 "abc" 9)
+;;=> {"bac" 2, "abc" 9}
+
+;; This means sorted maps don't generally support heterogeneous keys the same as hash maps, although it depends on the
+;; comparison function provided. For example, the preceding examples assume all keys are strings. The default sorted-map
+;; comparison function compare supports maps whose keys are all mutually comparable with each other. Attempts to use
+;; keys that aren't supported by whichever comparison function you're using will generally result in a cast exception:
+(sorted-map :a 1 "b" 2)
+;;=> java.lang.ClassCastException: clojure.lang.Keyword cannot be cast to java.lang.String
+
+;; One remarkable feature supported by sorted maps (and also sorted sets) is the ability to jump efficiently to a
+;; particular key and walk forward or backward from there through the collection. This is done with the subseq and
+;; rsubseq functions for forward and backward, respectively. Even if you don't know the exact key you want, these
+;; functions can be used to "round up" the next closest key that exists.
+
+;; Another way that sorted maps and hash maps differ is in their handling of numeric keys. A number of a given magnitude
+;; can be represented by many different types; for example, 42 can be a long, an int, a float, and so on. Hash maps
+;; treat each of these different objects as different, whereas a sorted map treats them as the same. You can see the
+;; contrast in this example, where the hash map keeps both keys but the sorted map keeps just one:
+(assoc {1 :int} 1.0 :float)
+;;=> {1.0 :float, 1 :int}
+
+(assoc (sorted-map 1 :int) 1.0 :float)
+;;=> {1 :float}
+
+;; This is because the comparison function used by the sorted map determines order by equality, and if two keys compare
+;; as equal, only one is kept. This applies to comparison functions provided to sorted-map-by as well as the default
+;; comparator shown previously.
+
+;; Sorted maps otherwise work just like hash maps and can be used interchangeably. You should use sorted maps if you
+;; need to specify or guarantee a specific key ordering. On the other hand, if you need to maintain insertion ordering,
+;; then the use of array maps is required, as you'll see.
 
 

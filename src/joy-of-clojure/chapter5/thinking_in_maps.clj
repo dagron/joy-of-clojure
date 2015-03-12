@@ -102,4 +102,25 @@
 ;; need to specify or guarantee a specific key ordering. On the other hand, if you need to maintain insertion ordering,
 ;; then the use of array maps is required, as you'll see.
 
+;; Keeping your insertions in order with array maps
+;; ------------------------------------------------
+;; If you hope to perform an action under the assumption that a given map is insertion ordered, then you're setting
+;; yourself up for disappointment. But you might already know that Clojure provides a special map, called an array map,
+;; that ensures insertion ordering:
+(seq (hash-map :a 1 :b 2 :c 3))
+;;=> ([:c 3] [:b 2] [:a 1])
 
+(seq (array-map :a 1 :b 2 :c 3))
+;;=> ([:a 1] [:b 2] [:c 3])
+
+;; When insertion order is important, you should explicitly use an array map. Array maps can be populated quickly by
+;; ignoring the form of the key/value pairs and blindly copying them into place. For structures sized below a certain
+;; count, the cost associated with map lookup bridges the gap between a linear search through an equally sized array or
+;; list. That's not to say that the map will be slower; instead, it allows the map and linear implementations to be
+;; comparable. Sometimes your best choice for a map is not a map at all, and like most things in life, there are
+;; trade-offs. Fortunately, Clojure takes care of these considerations for you by adjusting the concrete implementations
+;; behind the scenes as the size of the map increases. The precise types in play aren't important, because Clojure is
+;; careful to document its promises and to leave undefined aspects subject to change and/or improvement. It's usually a
+;; bad idea to build your programs around concrete types, and it's always bad to build around undocumented behaviors.
+;; Clojure handles the underlying efficiency considerations so you don't have to. But be aware that if ordering is
+;; important, you should avoid operations that inadvertently change the underlying map implementation from an array map.

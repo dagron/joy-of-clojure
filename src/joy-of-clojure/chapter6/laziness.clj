@@ -229,3 +229,56 @@
 ;; now -- we'll cover it later on. In a nutshell, take to heart that Clojure can't rearrange operations, because there's
 ;; no way to guarantee that order is unimportant. This is one area where a purely functional lazy language such as
 ;; Haskell shines by comparison.
+
+;; Employing infinite sequences
+;; ----------------------------
+;; Because Clojure's sequences are lazy, they have the potential to be infinitely long. Clojure provides a number of
+;; functions for generating and working with infinite sequences:
+
+;; Run at your own risk!
+(iterate (fn [n] (/ n 2)) 1)
+;;=> (1 1/2 1/4 1/8 1/16 1/32 1/64 1/128 1/256 1/512...)
+
+;; It sure is a nice trick (although you might not think so had you chosen to ignore our warning), but what could you
+;; possibly use infinite sequences for? Working with infinite sequences often fosters more declarative solutions. Take a
+;; simple example as a start. Imagine that you have a function that calculates a triangle number for a given integer:
+(defn triangle [n]
+  (/ (* n (+ n 1)) 2))
+
+(triangle 10)
+;;=> 55
+
+;; The function triangle can then be used to build a sequence of the first 10 triangle numbers:
+(map triangle (range 1 11))
+;;=> (1 3 6 10 15 21 28 36 45 55)
+
+;; There's nothing wrong with the preceding solution, but it suffers from a lack of flexibility in that it does what it
+;; does and that's all. By defining a sequence of all the triangle numbers, as in the following listing, you can perform
+;; more interesting "queries" in order to retrieve the desired elements.
+
+;; Infinite sequences fostering declarative solutions
+(def triangle-numbers (map triangle (iterate inc 1)))
+
+(take 10 triangle-numbers)                                  ; Get the first 10
+;;=> (1 3 6 10 15 21 28 36 45 55)
+
+(take 10 (filter even? triangle-numbers))                   ; Get the first 10 even
+;;=> (6 10 28 36 66 78 120 136 190 210)
+
+(nth triangle-numbers 99)                                   ; What Gauss found
+;;=> 5050
+
+(double (reduce + (take 1000 (map / triangle-numbers))))    ; Converge on 2
+;;=> 1.998001998001998
+
+(take 2 (drop-while #(< % 10000) triangle-numbers))         ; First 2 greater than 10,000
+;;=> (10011 10153)
+
+;; The queries use three ubiquitous Clojure functions: map, reduce, and filter. The map function applies a function to
+;; each element in a sequence and returns the resulting sequence. The reduce function applies a function to each value
+;; in the sequence and the running result to accumulate a final value. Finally, the filter function applies a function
+;; to each element in a sequence and returns a new sequence of those elements where said function returned a truthy
+;; value. All three of these functions retain the laziness of a given sequence.
+
+;; Defining the infinite sequence of triangle numbers allows you to take elements from it as needed, only calculating
+;; those particular items.

@@ -282,3 +282,128 @@
 
 ;; Defining the infinite sequence of triangle numbers allows you to take elements from it as needed, only calculating
 ;; those particular items.
+
+;; The delay and force macros
+;; --------------------------
+;; Although Clojure sequences are largely lazy, Clojure itself isn't. In most cases, expressions in Clojure are
+;; evaluated once prior to their being passed into a function rather than at the time of need. But Clojure does provide
+;; mechanisms for implementing what are known as call-by-need semantics. The most obvious of these mechanisms is its
+;; macro facilities, but we'll defer that discussion until later. The other mechanism for providing what we'll call
+;; explicit laziness uses Clojure's delay and force. In short, the delay macro is used to defer the evaluation of an
+;; expression until explicitly forced using the force function. Using these laziness primitives, you can wrap an
+;; expression in a call to delay and use it only if necessary on the callee's side:
+(defn defer-expensive [cheap expensive]
+  (if-left [good-enough (force cheap)]                      ; if-let performs the consequent only if a truthy value is
+           good-enough                                      ; returned
+           (force expensive)))
+
+(defer-expensive (delay :cheap)
+                 (delay (do (Thread/sleep 5000) :expensive)))
+;;=> :cheap
+
+(defer-expensive (delay false)
+                 (delay (do (Thread/sleep 5000) :expensive)))
+;;=> :expensive
+
+;; You can simulate this behavior with the use of anonymous functions, where delay is replaced by (fn [] expr) and force
+;; by (delayed-fn), but using delay/force lets you explicitly check for delayed computations using delay?. Additionally,
+;; delay caches its calculation, therefore allowing its wrapped expression to be calculated only once. Of course, you
+;; could simulate the same behavior using memoization, but why would you in this case when delay and force solve the
+;; problem more succinctly?
+
+;; if-let and when-let
+;; -------------------
+;; The if-let and when-let macros are useful when you'd like to bind the results of an expression based on whether it
+;; returns a truthy value. This helps to avoid the need to nest if/when and let as shown:
+(if :truthy-thing
+  (let [res :truthy-thing] (println res)))
+;; :truthy-thing
+
+(if-let [res :truthy-thing] (println res))
+;; :truthy-thing
+
+;; The latter is much more succinct.
+
+;; There are more complicated usage patterns for delay and force besides the simple scheme outlined previously. For
+;; example, you can implement a version of the lazy sequence of triangular numbers from a few sections prior using delay
+;; and force:
+(defn infinite-triangles [n]
+  {:head (triangle n)
+   :tail (delay (infinite-triangles (inc n)))})
+
+(defn head [l] (:head l))
+
+(defn tail [l] (force (:tail l)))
+
+;; The function infinite-triangles creates a lazy linked list of nodes. Each node is a map containing a value mapped to
+;; :head and a link to the remainder of the list keyed as :tail. The head of the list is the result of applying the
+;; function triangle to the incrementing counter passed recursively within the body of delay. As you can imagine, the
+;; head of a node is always calculated as you walk down the linked list, even if it's never accessed. This type of lazy
+;; structure is known as head strict but differs from Clojure's lazy-seq, which delays both the head and tail and then
+;; realizes them at the same time.
+
+;; You can now create a structure similar to the original triangle-numbers and start getting at its contained elements:
+(def triangle-numbers (infinite-triangles 1))
+
+(head triangle-numbers)
+;;=> 1
+
+(head (tail triangle-numbers))
+;;=> 3
+
+(head (tail (tail triangle-numbers)))
+;;=> 6
+
+;; One thing to note about the preceding code is that accessing the values 3 and 6 involves deferred calculations that
+;; occur only on demand. The structure of the example is shown in the figure below.
+
+;; Lazy linked-list example. Each node of this linked list contains a value (the head) and a delay (the tail). The
+;; creation of the next part is forced by a call to tail -- it doesn't exist until then.
+;;
+;; triangle-numbers ---+
+;;                     |
+;;         +-----------+
+;;         |     (infinite-triangles 1)
+;;         +---> +-------------------------------+
+;;               | :head 1                       |
+;;               +-------------------------------+
+;;               | :tail              delay      | ---+
+;;               +-------------------------------+    |
+;;                                        +-----------+
+;;                                        |     (infinite-triangles 2)
+;;                                        +---> +-------------------------------+
+;;                                              | :head 3                       |
+;;                                              +-------------------------------+
+;;                                              | :tail              delay      | ---+
+;;                                              +-------------------------------+    |
+;;                                                                       +-----------+
+;;                                                                       |     (infinite-triangles 3)
+;;                                                                       +---> +-------------------------------+
+;;                                                                             | :head 6                       |
+;;                                                                             +-------------------------------+
+;;                                                                             | :tail              delay . . .|
+;;                                                                             +-------------------------------+
+
+;; Although you can navigate the entire chain of triangular numbers using only head and tail, it's probably a better
+;; idea to use them as primitives for more complicated functions:
+(defn taker [n l]
+  (loop [t n, src l, ret []]
+    (if (zero? t)
+      ret
+      (recur (dec t) (tail src) (conj ret (head src))))))
+
+(defn nthr [l n]
+  (if (zero? n)
+    (head l)
+    (recur (tail l) (dec n))))
+
+(taker 10 triangle-numbers)
+;;=> [1 3 6 10 15 21 28 36 45 55]
+
+(nthr triangle-numbers 99)
+;;=> 5050
+
+;; Of course, writing programs using delay and force is an onerous way to go about the problem of laziness, and you'd be
+;; better served by using Clojure's lazy sequences to full effect rather than building your own house from these basic
+;; blocks. But the preceding code, in addition to being simple to understand, harkens back to our discussino of the
+;; entire sequence "protocol" being built entirely on the functions first and rest. Pretty cool, right?

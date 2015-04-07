@@ -64,3 +64,24 @@
 ;;=> (:a :b :c)
 
 ;; Splitting functions into smaller, well-defined pieces fosters composability and, as a result, reuse.
+
+;; Creating functions on demand using partial functions
+;; ----------------------------------------------------
+;; There may be times when instead of building a new function from chains of other functions as comp allows, you need to
+;; build a function from the partial application of another:
+((partial + 5) 100 200)
+;;=> 305
+
+;; The function partial builds a new function that partially applies the single argument 5 to the addition function.
+;; When the returned partial function is passed the arguments 100 and 200, the result is their summation plus that of
+;; the value 5 captured by partial.
+
+;; Note: The use of partial differs from the notion of currying in a fundamental way. A function built with partial
+;; attempts to evaluate whenever it's given another argument. A curried function returns another curried function until
+;; it receives a predetermined number of arguments -- only then does it evaluate. Because Clojure allows functions with
+;; a variable number of arguments, currying makes little sense.
+
+;; We'll discuss more about using partial later in this section, but as a final point observe that
+;; ((partial + 5) 100 200) is equivalent to (#(apply + 5 %&) 100 200).
+(#(apply + 5 %&) 100 200)
+;;=> 305

@@ -101,3 +101,33 @@
 ;;=> false
 
 ;; Note that (complement even?) is equivalent to (comp not even?) or #(not (even? %)).
+
+;; Using functions as data
+;; -----------------------
+;; First-class functions can not only be treated as data; they are data. Because a function is first class, it can be
+;; stored in a container expecting a piece of data, be it a local, a reference, collections, or anything able to store a
+;; java.lang.Object. This is a significant departure from Java, where methods are part of a class but don't stand alone
+;; at runtime. One particularly useful method for treating functions as data is the way that Clojure's testing framework
+;; clojure.test stores and validates unit tests in the metadata of a var holding a function. These unit tests are keyed
+;; with the :test keyword, laid out as follows:
+(defn join
+  {:test (fn []
+           (assert
+             (= (join "," [1 2 3]) "1,3,3")))}
+  [sep s]
+  (apply str (interpose sep s)))
+
+;; You've modified join by attaching some metadata containing a faulty unit test. Of course, by that we mean the
+;; attached unit test is meant to fail in this case. The clojure.test/run-tests function is useful for running attached
+;; unit tests in the current namespace:
+(use '[clojure.test :as t])
+(t/run-tests)
+;; Testing user
+;;
+;; ERROR in (join) (functions_in_all_their_forms.clj:115)
+;; Uncaught exception, not in assertion.
+;; expected: nil
+;; actual: java.lang.AssertionError: Assert failed: (= (join "," [1 2 3]) "1,3,3")
+
+;; As expected, the faulty unit test for join fails. Unit tests in Clojure only scratch the surface of the boundless
+;; spectrum of examples using functions as data, but for now they'll do.

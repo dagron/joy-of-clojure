@@ -85,3 +85,19 @@
 ;; ((partial + 5) 100 200) is equivalent to (#(apply + 5 %&) 100 200).
 (#(apply + 5 %&) 100 200)
 ;;=> 305
+
+;; Reversing truth with complement
+;; -------------------------------
+;; One final function builder is the complement function. This function takes a function that returns a truthy value and
+;; returns the opposite truthy value:
+(let [truthiness (fn [v] v)]
+  [((complement truthiness) true)
+   ((complement truthiness) 42)
+   ((complement truthiness) false)
+   ((complement truthiness) nil)])
+;;=> [false false true true]
+
+((complement even?) 2)
+;;=> false
+
+;; Note that (complement even?) is equivalent to (comp not even?) or #(not (even? %)).

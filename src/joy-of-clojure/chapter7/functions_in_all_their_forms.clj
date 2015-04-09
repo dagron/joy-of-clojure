@@ -131,3 +131,24 @@
 
 ;; As expected, the faulty unit test for join fails. Unit tests in Clojure only scratch the surface of the boundless
 ;; spectrum of examples using functions as data, but for now they'll do.
+
+;; The faces of defn metadata
+;; --------------------------
+;; As shown in the definition of the join function with built-in tests, placing a map before a function's parameters is
+;; one way of assigning metadata to a function using the defn macro. Another way is to use the shorthand notation before
+;; the function name, like so:
+(defn ^:private ^:dynamic sum [nums]
+  (map + nums))
+;; The use of the shorthand ^:private and ^:dynamic is the same as saying
+(defn ^{:private true, :dynamic true} sum [nums]
+  (map + nums))
+;; which is the same as saying
+(defn sum {:private true, :dynamic true} [nums]
+  (map + nums))
+;; which is also the same as saying
+(defn sum
+  ([nums]
+   (map + nums))
+  {:private true, :dynamic true})
+;; The differing choices come in handy usually in different macro metaprogramming scenarios. For most human-typed
+;; functions, the shorthand form works fine.

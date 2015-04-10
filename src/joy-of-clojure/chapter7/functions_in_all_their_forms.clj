@@ -152,3 +152,89 @@
   {:private true, :dynamic true})
 ;; The differing choices come in handy usually in different macro metaprogramming scenarios. For most human-typed
 ;; functions, the shorthand form works fine.
+
+;; Higher-order functions
+;; ----------------------
+;; A higher-order function is a function that does at least one of the following:
+;; * Takes one or more functions as arguments
+;; * Returns a function as a result
+;; A Java programmer may be familiar with the practices of subscriber patterns or schemes using more general-purpose
+;; callback objects. There are scenarios such as these where Java treats objects like functions, but as with anything in
+;; Java, you're really dealing with objects containing privileged methods.
+
+;; Functions as arguments
+;; ----------------------
+;; In this book, we use and advocate the use of the sequence functions map, reduce, and filter -- all of which expect a
+;; function argument that's applied to the elements of the sequence arguments. The use of functions in this way is
+;; ubiquitous in Clojure and can make for truly elegant solutions. Another interesting example of a function that takes
+;; a function as an argument is the sort-by function. Before we dig into that, allow us to explain the motivation behind
+;; it. Specifically, Clojure provides a function named sort that works exactly as you might expect:
+(sort [1 5 7 0 -42 13])
+;;=> (-42 0 1 5 7 13)
+
+;; The sort function works on many different types of elements:
+(sort ["z" "x" "a" "aa"])
+;;=> ("a" "aa" "x" "z")
+
+(sort [(java.util.Date.) (java.util.Date. 100)])
+;;=> (#inst "1970-01-01T00:00:00.100-00:00" #inst "2015-03-29T00:06:02.955-00:00")
+
+(sort [[1 2 3], [-1, 0, 1], [3 2 1]])
+;;=> ([-1 0 1] [1 2 3] [3 2 1])
+
+;; But if you want to sort by different criteria, such as from greatest to least, then you can pass a function in to
+;; sort for use as the sorting criteria:
+(sort > [7 1 4])
+;;=> (7 4 1)
+
+;; But sort fails if given seqs containing elements that aren't mutually comparable:
+(sort ["z" "x" "a" "aa" 1 5 8])
+;;=> java.lang.ClassCastException: java.lang.String cannot be cast to java.lang.Number
+
+(sort [{:age 99}, {:age 13}, {:age 7}])
+;;=> java.lang.ClassCastException: clojure.lang.PersistentArrayMap cannot be cast to java.lang.Comparable
+
+;; Likewise, it gives unwanted results if you try to compare sub-elements of a type that it sorts as an aggregate rather
+;; than by specific parts:
+(sort [[:a 7], [:c 13], [:b 21]])
+;;=> ([:a 7] [:b 21] [:c 13])
+
+;; That is, in this example you want to sort by the second element in the vectors, but passing the second function into
+;; sort is not the solution:
+(sort second [[:a 7], [:c 13], [:b 21]])
+;;=> clojure.lang.ArityException: Wrong number of args (2) passed to: core/second
+
+;; Instead, Clojure provides the sort-by function, which takes a function as an argument that is used to preprocess each
+;; sortable element into something that is mutually comparable to the others:
+(sort-by second [[:a 7], [:c 13], [:b 21]])
+;;=> ([:a 7] [:c 13] [:b 21])
+
+;; That looks better. And likewise for the other failed examples shown earlier, sort-by is key:
+(sort-by str ["z" "x" "a" "aa" 1 5 8])
+;;=> (1 5 8 "a" "aa" "x" "z")
+
+(sort-by :age [{:age 99}, {:age 13}, {:age 7}])
+;;=> ({:age 7} {:age 13} {:age 99})
+
+;; The fact that sort-by takes an arbitrary function (and function-like thing, as shown when you used the keyword
+;; earlier) to preprocess elements allows for powerful sorting techniques. For example, let's look at an example of a
+;; function that takes a sequence of maps and a function working on each, and returns a sequence sorted by the results
+;; of the function. The implementation in Clojure is straightforward and clean:
+(def plays [{:band "Burial",     :plays 979,  :loved 9}
+            {:band "Eno",        :plays 2333, :loved 15}
+            {:band "Bill Evans", :plays 979,  :loved 9}
+            {:band "Magma",      :plays 2665, :loved 31}])
+
+(def sort-by-loved-ratio (partial sort-by #(/ (:plays %) (:loved %))))
+
+;; The function with the overly descriptive name sort-by-loved-ratio is built from the partial application of the
+;; function sort-by and an anonymous function dividing the :plays field by the :loved field. This is a simple solution
+;; to the problem presented, and its usage is equally so:
+(sort-by-loved-ratio plays)
+;;=> ({:plays 2665, :band "Magma",      :loved 31}
+;;    {:plays 979,  :band "Burial",     :loved 9}
+;;    {:plays 979,  :band "Bill Evans", :loved 9}
+;;    {:plays 2333, :band "Eno",        :loved 15})
+
+;; This example intentionally uses the additional higher-order function sort-by to avoid reimplementing core functions
+;; and instead build the program from existing parts. You should strive to do this whenever possible.

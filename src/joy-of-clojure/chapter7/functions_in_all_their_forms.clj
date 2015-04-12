@@ -290,3 +290,62 @@
 ;; functions: map, reduce, filter, for, some, repeatedly, sort-by, keep, take-while, and drop-while. But higher-order
 ;; functions aren't a panacea for every solution. Therefore, we'll cover the topic of recursive solutions in greater
 ;; depth later on for those cases when higher-order functions fail or are less than clear.
+
+;; Pure functions
+;; --------------
+;; Pure functions are regular functions that, through convention, conform to the following simple guidelines:
+;; * The function always returns the same result, given the same arguments.
+;; * The function doesn't cause any observable side effects.
+
+;; Although Clojure is designed to minimize and isolate side effects, it's by no means a purely functional language.
+;; But there are a number of reasons why you'd want to build as much of your system as possible from pure functions, and
+;; we'll enumerate a few presently.
+
+;; Referential transparency
+;; ------------------------
+;; If a function of some arguments always results in the same value and changes no other values in the greater system,
+;; then it's essentially a constant, or referentially transparent (the reference to the function is transparent to
+;; time). Take a look at pure function keys-apply:
+(defn keys-apply [f ks m]
+  (let [only (select-keys m ks)]                            ; Get exact entries
+    (zipmap (keys only)                                     ; Zip the keys and processed values back into a map
+            (map f (vals only)))))
+
+;; The action of keys-apply is as follows (recall that plays is a sequence of maps, defined in the previous section):
+(keys-apply #(.toUpperCase %) #{:band} (plays 0))
+;;=> {:band "BURIAL"}
+
+;; Using another pure function manip-map, you can then manipulate a set of keys based on a given function:
+(defn manip-map [f ks m]                                    ; Manipulates only the given keys, and then merges the
+  (merge m (keys-apply f ks m)))                            ; changes into the original
+
+;; And the use of manip-map to halve the values keyed at :plays and :loved is as follows:
+(manip-map #(int (/ % 2)) #{:plays :loved} (plays 0))
+;;=> {:plays 489, :band "Burial", :loved 4}
+
+;; keys-apply and manip-map are both pure functions, illustrated by the fact that you can replace them in the context of
+;; a larger program with their expected return values and not change the outcome. Pure functions exist outside the
+;; bounds of time. But if you make either keys-apply or manip-map reliant on anything but its arguments or generate a
+;; side effect within, then referential transparency dissolves. Let's add one more function to illustrate this:
+(defn mega-love! [ks]
+  (map (partial manip-map #(int (* % 1000)) ks) plays))
+
+(mega-love! [:loved])
+;;=> ({:plays 979,  :band "Burial",     :loved 9000}
+;;    {:plays 2333, :band "Eno",        :loved 15000}
+;;    {:plays 979,  :band "Bill Evans", :loved 9000}
+;;    {:plays 2665, :band "Magma",      :loved 31000})
+
+;; The function mega-love! works against the global var plays and is no longer limited to generating results solely from
+;; its arguments. Because plays could change at any moment, there's no guarantee that mega-love! would return the same
+;; value given any particular argument.
+
+;; Optimization
+;; If a function is referentially transparent, then it can more easily be optimized using techniques such as memoization
+;; and algebraic manipulations.
+
+;; Testability
+;; If a function is referentially transparent, then it's easier to reason about and therefore more straightforward to
+;; test. Building mega-love! as an impure function forces the need to test against the possibility that plays could
+;; change at any time, complicating matters substantially. Imagine the confusion should you add further impure functions
+;; based on further external transient values.

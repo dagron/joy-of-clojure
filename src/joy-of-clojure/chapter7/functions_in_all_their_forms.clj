@@ -238,3 +238,55 @@
 
 ;; This example intentionally uses the additional higher-order function sort-by to avoid reimplementing core functions
 ;; and instead build the program from existing parts. You should strive to do this whenever possible.
+
+;; Functions as return values
+;; --------------------------
+;; You've already used functions returning functions in this chapter with comp, partial, and complement, but you can
+;; build functions that do the same. Let's extend the earlier example to provide a function that sorts rows based on
+;; some number of column values. This is similar to the way spreadsheets operate, in that you can sort on a primary
+;; column while falling back on a secondary column to provide the sort order on matching results in the primary. This
+;; behavior is typically performed along any number of columns, cascading down from the primary column to the last; each
+;; subgroup is sorted appropriately, as the expected result illustrates:
+;; (sort-by (columns [:plays :loved :band]) plays)
+
+;; This kind of behavior sounds complex on the surface but is shockingly simple in its Clojure implementation:
+(defn columns [column-names]
+  (fn [row]
+    (vec (map row column-names))))
+
+(sort-by (columns [:plays :loved :band]) plays)
+;;=> ({:plays 979,  :band "Bill Evans", :loved 9}
+;;    {:plays 979,  :band "Burial",     :loved 9}
+;;    {:plays 2333, :band "Eno",        :loved 15}
+;;    {:plays 2665, :band "Magma",      :loved 31})
+
+;; A quick example of what columns provides will help to clarify its intent:
+(columns [:plays :loved :band])
+;;=> #<user$columns$fn__2203 user$columns$fn__2203@3894ef06>
+
+((columns [:plays :loved :band])
+  {:band "Burial", :plays 979, :loved 9})
+;;=> [979 9 "Burial"]
+
+;; Running the preceding expression shows that the row for Burial has a tertiary column sorting, represented as a vector
+;; of three elements that correspond to the listed column names. Specifically, the function columns returns another
+;; function expecting a map. This return function is then supplied to sort-by to provide the value on which the plays
+;; vector would be sorted. Perhaps you see a familiar pattern: you apply the column-names vector as a function across a
+;; set of indices, building a sequence of its elements at those indices. This action returns a sequence of the values of
+;; that row for the supplied column names, which is then turned into a vector so that it can be used as the sorting
+;; function, as structured here:
+(vec (map (plays 0) [:plays :loved :band]))
+;;=> [979 9 "Burial"]
+
+;; This resulting vector is then used by sort-by to provide the final ordering. Building your programs using first-class
+;; functions in concert with higher-order functions reduces complexities and makes your code base more robust and
+;; extensible. Next, we'll explore pure functions, which all prior functions in this section have been, and explain why
+;; your applications should strive toward purity.
+
+;; Prefer higher-order functions when processing sequences
+;; -------------------------------------------------------
+;; We earlier that one way to ensure that lazy sequences are never fully realized in memory is to prefer higher-order
+;; functions for processing. Most collection processing can be performed with some combination of the following
+;; functions: map, reduce, filter, for, some, repeatedly, sort-by, keep, take-while, and drop-while. But higher-order
+;; functions aren't a panacea for every solution. Therefore, we'll cover the topic of recursive solutions in greater
+;; depth later on for those cases when higher-order functions fail or are less than clear.

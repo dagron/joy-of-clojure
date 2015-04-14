@@ -349,3 +349,36 @@
 ;; test. Building mega-love! as an impure function forces the need to test against the possibility that plays could
 ;; change at any time, complicating matters substantially. Imagine the confusion should you add further impure functions
 ;; based on further external transient values.
+
+;; Named Arguments
+;; ---------------
+;; Some programming languages allow functions to take named arguments. Python is one such language, as shown here:
+;; def slope(p1=(0,0), p2=(1,1)):
+;;     return (float(p2[1] - p1[1])) / (p2[0] - p1[0])
+;; slope((4,15), (3,21))
+;; #=> -6.0
+;; slope(p2=(2,1))
+;; #=> 0.5
+;; slope()
+;; #=> 1.0
+
+;; The Python function slope calculates the slope of a line given two tuples defining points on a line. The tuples p1
+;; and p2 are defined as named parameters, allowing either or both to be omitted in favor of default values or passed in
+;; any order as named parameters. Clojure provides a similar feature, using its destructuring mechanism coupled with the
+;; optional arguments flag &. The same function can be written using Clojure's named arguments as follows:
+(defn slope
+  [& {:keys [p1 p2] :or {p1 [0 0] p2 [1 1]}}]
+  (float (/ (- (p2 1) (p1 1))
+            (- (p2 0) (p1 0)))))
+
+(slope :p1 [4 15] :p2 [3 21])
+;;=> -6.0
+
+(slope :p2 [2 1])
+;;=> 0.5
+
+(slope)
+;;=> 1.0
+
+;; Clojure's named arguments are built on the destructuring mechanism outlined before, allowing much richer ways to
+;; declare them.

@@ -382,3 +382,91 @@
 
 ;; Clojure's named arguments are built on the destructuring mechanism outlined before, allowing much richer ways to
 ;; declare them.
+
+;; Constraining functions with pre- and postconditions
+;; ---------------------------------------------------
+;; Every function in Clojure can potentially be constrained on its inputs, its output, and some arbitrary relationship
+;; between them. These constraints take the form of pre- and postcondition vectors contained in a map defined in the
+;; function body. Let's simplify the slope function to the base case to more clearly illustrate the matter of
+;; constraints:
+(defn slope [p1 p2]
+  {:pre [(not= p1 p2) (vector? p1) (vector? p2)]
+   :post [(float? %)]}
+  (/ (- (p2 1) (p1 1))
+     (- (p2 0) (p1 0))))
+
+;; The constraint map defines two entries: :pre constraining the input parameters and :post constraining the return
+;; value. The function calls in the constraint vectors are all expected to return true for the constraints to pass (via
+;; logical and). In the case of the revised slope function, the input constraints are that the points must not be equal
+;; and they must both be vectors. In the postcondition, the constraint is that the return result must be a floating-
+;; point value. The following example runs through a few scenarios to show how the new implementation works:
+(slope [10 10] [10 10])
+;;=> java.lang.AssertionError: Assert failed: (not= p1 p2)            ; Same points
+
+(slope [10 1] '(1 20))
+;;=> java.lang.AssertionError: Assert failed: (vector? p2)             ; p2 is a list
+
+(slope [10 1] [1 20])
+;;=> java.lang.AssertionError: Assert failed: (float? %)
+
+(slope [10.0 1] [1 20])
+;;=> -2.111111111111111
+
+;; Clojure also provides a simple assertion macro that can be used to emulate some pre- and postconditions. Using assert
+;; instead of :pre is typically fairly straightforward. But using assert instead of :post is cumbersome and awkward. On
+;; the contrary, restricting yourself to constraint maps will cover most of the expected cases covered by assert, which
+;; can be used to fill in the remaining holes (such as loop invariants). In any case, constraint maps provide standard
+;; hooks into the assertion machinery of Clojure, whereas using assert is by its nature ad hoc. Yet another advantage of
+;; :pre and :post is that they allow the assertions to come from a different source than the body of the function, which
+;; we'll address next.
+
+;; Tip
+;; To turn off :pre and :post checks for a specific file, add the line (set! *assert* false) to a source file somewhere
+;; near the top, but after the namespace declaration.
+
+;; Decoupling assertions from functions
+;; The implementation of slope corresponds to a well-established mathematical property. As a result, it makes perfect
+;; sense to tightly couple the constraints and the work to be done to perform the calculation. But not all functions are
+;; as well defined as slope, and therefore they could benefit from some flexibility in their constraints. Imagine a
+;; function that takes a map, puts some keys into it, and returns the new map, defined as follows:
+(defn put-things [m]
+  (into m {:meat "beef" :veggie "broccoli"}))
+
+(put-things {})
+;;=> {:veggie "broccoli", :meat "beef"}
+
+;; How would you add constraints to put-things? you could add them directly to the function definition, but the
+;; consumers of the map might have differing requirements for the entries added. Instead, here's how you can abstract
+;; constraints into another function:
+(defn vegan-constraints [f m]
+  {:pre [(:veggie m)]
+   :post [(:veggie %) (nil? (:meat %))]}
+  (f m))
+
+(vegan-constraints put-things {:veggie "carrot"})
+;;=> java.lang.AssertionError: Assert failed: (nil? (:meat %))
+
+;; The vegan-constraints function applies specific constraints to an incoming function, stating that the map coming in
+;; and going out should have some kind of veggie and should never have meat in the result. The beauty of this scheme is
+;; that you can create contextual constraints based on the appropriate expected results, as shown next:
+(defn balanced-diet [f m]
+  {:post [(:meat %) (:veggie %)]}                           ; Make sure there is a meat and a veggie
+  (f m))
+
+(balanced-diet put-things {})
+;;=> {:veggie "broccoli", :meat "beef"}
+
+(defn finicky [f m]
+  {:post [(= (:meat %) (:meat m))]}                         ; Never change the meat
+  (f m))
+
+(finicky put-things {:meat "chicken"})
+;;=> java.lang.AssertionError: Assert failed: (= (:meat %) (:meat m))
+
+;; Recall that the put-things function returns a new map augmented with certain foodstuffs. Therefore, the assertion
+;; failure in the last example happens because the new map is compared with the original map passed to finicky as an
+;; argument. By pulling out the assertions into a wrapper function, you detach some domain-specific requirements from a
+;; potentially globally useful function and isolate them in aspects. By detaching pre- and postconditions from the
+;; functions themselves, you can mix in any implementation you please, knowing that as long as it fulfills the contract,
+;; its interposition is transparent. This is only the beginning of the power of Clojure's pre- and postconditions, and
+;; we'll come back to it a few times more to see how it can be extended and utilized.

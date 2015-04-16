@@ -38,3 +38,30 @@
 ;; clearly not what should happen. A point of note about this technique is that when closing over something mutable, you
 ;; run the risk of making your functions impure and thus more difficult to test and reason about, especially if the
 ;; mutable local is shared.
+
+;; Functions returning closures
+;; Each of the previous examples creates a single closure, but by wrapping similar code in another function definition,
+;; you can create more closures on demand. For example, you can take the earlier times-two example and generalize it to
+;; take an argument instead of using 2 directly:
+(defn times-n [n]
+  (let [x n]
+    (fn [y] (* y x))))
+
+;; We've covered functions returning functions before, but if you're not already familiar with closures, this may be a
+;; stretch. You now have an outer function stored in a var named times-n -- note that you use defn instead of def. When
+;; times-n is called with an argument, it returns a new closure created by the fn form and closing over the local x. The
+;; value of x for this closure is whatever is passed in to times-n:
+(times-n 4)
+;;=> #<user$times_n$fn__3454 user$times_n$fn__3454@142b4159>
+
+;; Viewing the function form for this closure isn't too useful, so instead you can store it in a var, allowing you to
+;; call it by a friendlier name such as times-four:
+(def times-four (times-n 4))
+
+;; Here you're using def again to store what times-n returns -- a closure over the number 4. Thus when you call this
+;; closure with an argument of its own, it returns the value of y times x, as shown:
+(times-four 10)
+;;=> 40
+
+;; Note that when you call the closure stored in times-four, it uses the local it closed over as well as the argument in
+;; the call.

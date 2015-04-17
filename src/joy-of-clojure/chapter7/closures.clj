@@ -65,3 +65,28 @@
 
 ;; Note that when you call the closure stored in times-four, it uses the local it closed over as well as the argument in
 ;; the call.
+
+;; Closing over parameters
+;; The definition of times-n creates a local x using let and closes over that instead of closing over the argument n
+;; directly. But this was only to help focus the discussion on other parts of the function. In fact, closures close over
+;; parameters of outer functions the same way they do over let locals. Thus times-n can be defined without any let at
+;; all:
+(defn times-n [n]
+  (fn [y] (* y n)))
+
+;; All the preceding examples would work exactly the same. Here's another function that creates and returns a closure in
+;; a similar way. Note again that the inner function maintains access to the outer parameter even after the outer
+;; function has returned:
+(defn divisible [denom]
+  (fn [num]
+    (zero? (rem num denom))))
+
+;; You don't have to store a closure in a var; you can instead create one and call it immediately:
+((divisible 3) 6)
+;;=> true
+
+((divisible 3) 7)
+;;=> false
+
+;; Instead of storing or calling a closure, a particular need is best served by pasing a closure along to another
+;; function that will use it.

@@ -125,3 +125,107 @@
 ;; Although certainly more succinct than the extended anonymous function form and the earlier example using a separate
 ;; divisible function with filter, there's a fine line to balance between reuse and clarity. Thankfully, in any case the
 ;; performance differences among the three choices are nominal.
+
+;; Sharing closure context
+;; So far, the closures we've shown have stood alone, but it's sometimes useful to have multiple closures closing over
+;; the same values. This may take the form of an ad hoc set of closures in a complex lexical environment, such as event
+;; callbacks or timer handlers in a nested GUI builder. Or it may be a tidy, specifically designed bundle of values and
+;; related functions—something that can be thought of as an object.
+;; To demonstrate this, let's build a robot object that has functions for moving it around a grid based on its current
+;; position and bearing. For this you need a list of coordinate deltas for compass bearings, starting with north and
+;; going clockwise:
+(def bearings [{:x  0, :y  1}                               ; north
+               {:x  1, :y  0}                               ; east
+               {:x  0, :y -1}                               ; south
+               {:x -1, :y  0}])                             ; west
+
+;; Note that this is on a grid where y increases as you go north and x increases as you go east -- mathematical
+;; coordinate style rather than spreadsheet cells. With this in place, it's easy to write a function forward that takes
+;; a coordinate and a bearing and returns a new coordinate, having moved forward one step in the direction of the
+;; bearing:
+(defn forward [x y bearing-num]
+  [(+ x (:x (bearings bearing-num)))
+   (+ y (:y (bearings bearing-num)))])
+
+;; Starting with a bearing of 0 (north) at 5,5 and going one step breings the bot to 5,6:
+(forward 5 5 0)
+;;=> [5 6]
+
+;; You can also try starting at 5,5 and with bearing 1 (east) or bearing 2 (south) and see the desired results:
+(forward 5 5 1)
+;;=> [6 5]
+
+(forward 5 5 2)
+;;=> [5 4]
+
+;; But you have no closures yet, so you'll build a bot object that keeps not just its coordinates, but also its bearing.
+;; In the process, you'll move this standalone forward function into the bot object. By making this a closure, you'll
+;; also open up possibilities for polymorphism later. So here's a bot that knows how to move itself forward:
+(defn bot [x y bearing-num]
+  {:coords [x y]
+   :bearing ([:north :east :south :west] bearing-num)
+   :forward (fn [] (bot (+ x (:x (bearings bearing-num)))
+                        (+ y (:y (bearings bearing-num)))
+                        bearing-num))})
+
+;; You can create an instance of this bot and query it for its coordinates or its bearing:
+(:coords (bot 5 5 0))
+;;=> [5 5]
+
+(:bearing (bot 5 5 0))
+;;=> :north
+
+;; But now that you've moved the forward function inside, you no longer pass in parameters, because it gets everything
+;; it needs to know from the state of the bot that it closes over. Instead, you use :forward to fetch the closure from
+;; inside the bot object and then use an extra set of parentheses to invoke it with no arguments:
+(:coords ((:forward (bot 5 5 0))))
+;;=> [5 6]
+
+;; Now you have a somewhat complicated beastie, but there's still only a single closure in the mix. Note that the inner
+;; set of parentheses is for the call of :forward, which returns the anonymous function; the outer set then calls that
+;; function. To make things more interesting, let's add turn-left and turn-right functions and store them right there in
+;; the object with :forward:
+(defn bot [x y bearing-num]
+  {:coords     [x y]
+   :bearing    ([:north :east :south :west] bearing-num)
+   :forward    (fn [] (bot (+ x (:x (bearings bearing-num)))
+                           (+ y (:y (bearings bearing-num)))
+                           bearing-num))
+   :turn-right (fn [] (bot x y (mod (+ 1 bearing-num) 4)))
+   :turn-left  (fn [] (bot x y (mod (- 1 bearing-num) 4)))})
+
+(:bearing ((:forward ((:forward ((:turn-right (bot 5 5 0))))))))
+;;=> :east
+
+(:coords ((:forward ((:forward ((:turn-right (bot 5 5 0))))))))
+;;=> [7 5]
+
+;; We won't talk about the verbosity of using the bot object yet; instead we'll focus on the features used in the
+;; definition of bot. You're freely mixing values computed when a bot is created (such as the :bearing) and functions
+;; that create values when called later. The functions are closures, and each has full access to the lexical
+;; environment. The fact that there are multiple closures sharing the same environment isn't awkward or unnatural and
+;; flows easily from the properties of closures already shown.
+
+;; We'd like to demonstrate one final feature of this pattern for building objects: polymorphism. For example, here's
+;; the definition of a bot that supports all the same usage as earlier, but this one has its wires crossed or perhaps is
+;; designed to work sensibly in Alice's Wonderland. Specifically, like the bots defined previously, the mirror-bot in
+;; the following code has all the same names for its fields -- a form of duck typing. When told to go forward,
+;; mirror-bot instead reverses, and it turns left instead of right and vice versa:
+(defn mirror-bot [x y bearing-num]
+  {:coords     [x y]
+   :bearing    ([:north :east :south :west] bearing-num)
+   :forward    (fn [] (mirror-bot (- x (:x (bearings bearing-num)))
+                                  (- y (:y (bearings bearing-num)))
+                                  bearing-num))
+   :turn-right (fn [] (mirror-bot x y (mod (- 1 bearing-num) 4)))
+   :turn-left  (fn [] (mirror-bot x y (mod (+ 1 bearing-num) 4)))})
+
+;; By bundling the functions that operate on data inside the same structure as the data itself, simple polymorphism is
+;; possible. Because each function is a closure, no object state needs to be explicitly passed; instead, each function
+;; uses any locals required to do its job.
+;; You probably cringed at the number of parentheses required to call these particular object closures, and rightfully
+;; so. We encourage you to extrapolate from the closure examples when dealing with your own applications and see how
+;; they can solve a variety of tricky and unusual problems. Although this kind of structure is simple and powerful and
+;; may be warranted in some situations, Clojure provides other ways of associating functions with data objects that are
+;; more flexible. In fact, the desire to avoid a widespread need for this type of ad hoc implementation inspired the
+;; creation of Clojure's reify macro, which we'll cover in a later section.

@@ -90,3 +90,38 @@
 
 ;; Instead of storing or calling a closure, a particular need is best served by pasing a closure along to another
 ;; function that will use it.
+
+;; Passing closures as functions
+;; We've shown many examples in previous sections of higher-order functions built in to Clojure's core libraries. What
+;; we've glossed over so far is that anywhere a function is expected, a closure can be used instead. This has dramatic
+;; consequences for how powerful these functions can be. For example, filter takes a function (called a predicate in
+;; this case) and a sequence, applies the predicate to each value of the sequence, and returns a sequence of just the
+;; values for which the predicate returned something truthy. A simple example of its use returns only the even numbers
+;; from a sequence of numbers:
+(filter even? (range 10))
+;;=> (0 2 4 6 8)
+
+;; Note that filter only ever passes a single argument to the predicate given it. Without closures, this might be
+;; restrictive, but with them you can close over the values needed:
+(filter (divisible 4) (range 10))
+;;=> (0 4 8)
+
+;; It's common to define a closure right on the spot where it's used, closing over whatever local context is needed:
+(defn filter-divisible [denom s]
+  (filter (fn [num] (zero? (rem num denom))) s))
+
+(filter-divisible 4 (range 10))
+;;=> (0 4 8)
+
+;; This kind of on-the-spot anonymous function definition is desired frequently enough that Clojure spends a little of
+;; its small syntax budget on the reader feature to make such cases more succinct. This #() form was first introduced in
+;; chapter 2 and in this case can be used to write the definition of filter-divisible as follows:
+(defn filter-divisible [denom s]
+  (filter #(zero? (rem % denom)) s))
+
+(filter-divisible 5 (range 20))
+;;=> (0 5 10 15)
+
+;; Although certainly more succinct than the extended anonymous function form and the earlier example using a separate
+;; divisible function with filter, there's a fine line to balance between reuse and clarity. Thankfully, in any case the
+;; performance differences among the three choices are nominal.

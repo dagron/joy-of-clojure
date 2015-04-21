@@ -229,3 +229,21 @@
 ;; may be warranted in some situations, Clojure provides other ways of associating functions with data objects that are
 ;; more flexible. In fact, the desire to avoid a widespread need for this type of ad hoc implementation inspired the
 ;; creation of Clojure's reify macro, which we'll cover in a later section.
+
+;; Compile-time vs. runtime
+;; When you look at code that includes a closure, it's not immediately obvious how the work is distributed between
+;; compile-time and runtime. In particular, when you see a lot of code or processor-intensive work being done in a
+;; closure, you may wonder about the cost of calling the function that creates the closure:
+(defn do-thing-builder [x y z]
+  (fn do-thing [a b]
+    ;...
+    (massive-calculation x y z)
+    ;...
+    ))
+
+;; But you don't need to worry. When this entire expression is compiled, bytecode for the bodies of do-thing and
+;; do-thing-builder is generated and stored in memory. In current versions of Clojure, each function definition gets its
+;; own class. But when do-thing-builder is called, it doesn't matter how large or slow the body of do-thing is -- all
+;; that's done at runtime is the creation of an instance of do-thing's class. This is lightweight and fast. Not until
+;; the closure returned by do-thing-builder is called does the complexity or speed of the body of that inner function
+;; matter at all.

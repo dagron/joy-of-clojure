@@ -122,3 +122,90 @@
 
 (convert {:bit 1, :byte 8, :nibble [1/2 :byte]} [32 :nibble])
 ;;=> 128N
+
+;; Tail calls and recur
+;; --------------------
+;; In a language such as Clojure, where function locals are immutable, the benefit of tail recursion is especially
+;; important for implementing algorithms that require the consumption of a value or the accumulation of a result. Before
+;; we get deeper into implementing tail recursion, we'll take a moment to appreciate the historical underpinnings of
+;; tail-call recursion and expound on its further role in Clojure.
+
+;; Generalized tail-call optimization (tco)
+;; In their "Lambda Papers", Guy L. Steele and Gerald Sussman describe their experiences with the research and
+;; implementation of the early versions of the Scheme programming language. The first versions of the interpreter served
+;; as a model for Carl Hewitt's Actor model of concurrent computation, implementing both actors and functions. As a
+;; quick summary, you can think of the Actor model as one where each actor is a process with local state and an event
+;; loop processing messages from other actors to read, write, and compute on that state. In any case, one day, while
+;; eating Ho-Hos, Steele and Sussman noticed that the implementation of control flow in Scheme, implemented using
+;; actors, always ended with one actor calling another in its tail position, with the return to the callee being
+;; deferred. Armed with their intimate knowledge of the Scheme compiler, Steele and Sussman were able to infer that
+;; because the underlying architecture dealing with actors and functions was the same, retaining both was redundant.
+;; Therefore, actors were removed from the language and functions remained as the more general construct. Thus,
+;; generalized tail-call optimization was thrust into the world of computer science.
+;; Generalized tail-call optimization as found in Scheme can be viewed as analogous to object delegation. Hewitt's
+;; original Actor model was rooted heavily in message delegation of arbitrary depth, with data manipulation occurring at
+;; any and all levels along the chain. This is similar to an adapter, except that there's an implicit resource-
+;; management element involved. In Scheme, any tail call from a function A to a function B results in the deallocation
+;; of all of A local resources and the full delegation of execution to B. As a result of this generalized tail-call
+;; optimization, the return to the original caller of A is directly from B instead of back down the call chain through A
+;; again. Unfortunately for Clojure, neither the Java Virtual Machine nor its bytecode provide generalized tail-call
+;; optimization facilities. Clojure does provide a tail call special form recur, but it only optimizes the case of a
+;; tail-recursive self call and not the generalized tail call. In the general case, there's currently no way to reliably
+;; optimize tail calls.
+
+;; Tail recursion
+;; The following function calculates the greatest common denominator of two numbers:
+(defn gcd [x y]
+  (cond
+    (> x y) (gcd (- x y) y)
+    (< x y) (gcd x (- y x))
+    :else x))
+
+;; The implementation of gcd is straightforward, but notice that it uses mundane recursion instead of tail recursion via
+;; recur. In a language such as Scheme, containing generalized tail-call optimization, the recursive calls are optimized
+;; automatically. On the other hand, because of the JVM's lack of tail-call optimization, the recur is needed in order
+;; to avoid stack-overflow errors.
+
+;; Using the information in the table below, you can replace the mundane recursive calls with the recur form,
+;; causing gcd to be optimized by Clojure's compiler.
+
+;; Tail positions and recur targets
+;; ---------------------------------+-------------------------------------------------------------------+---------------
+;;             Form(s)              |                            Tail position                          | Recur target?
+;; ---------------------------------+-------------------------------------------------------------------+---------------
+;; fn, defn                         | (fn [args] expressions tail)                                      | Yes
+;; loop                             | (loop [bindings] expressions tail)                                | Yes
+;; let, letfn, binding              | (let [bindings] expressions tail)                                 | No
+;; do                               | (do expressions tail)                                             | No
+;; if, if-not                       | (if test then-tailelse-tail)                                      | No
+;; when, when-not                   | (when test expressions tail)                                      | No
+;; cond                             | (cond test test tail ...:else else tail)                          | No
+;; or, and                          | (or test test... tail)                                            | No
+;; case                             | (case const const tail ... default tail)                          | No
+
+;; Why recur?
+;; If you think you understand why Clojure provides an explicit tail-call optimization form rather than an implicit one,
+;; then go ahead and skip to the next section.
+;; There's no technical reason why Clojure couldn't automatically detect and optimize recursive tail calls — Scala does
+;; this - but there are valid reasons why Clojure doesn't. First, because there's no generalized TCO in the JVM, Clojure
+;; can only provide a subset of tail-call optimizations: the recursive case and the mutually recursive case (see the
+;; next section). By making recur an explicit optimization, Clojure doesn't give the pretense of providing full TCO.
+;; Second, having recur as an explicit form allows the Clojure compiler to detect errors caused by an expected tail call
+;; being pushed out of the tail position. If you change gcd to always return an integer, then an exception is thrown
+;; because the recur call is pushed out of the tail position:
+(defn gcd [x y]
+  (int
+    (cond
+      (> x y) (recur (- x y) y)
+      (< x y) (recur x (- y x))
+      :else x)))
+;;=> java.lang.UnsupportedOperationException: Can only recur from tail position...
+
+;; With automatic recursive tail-call optimization, the addition of an outer int call wouldn't necessarily trigger an
+;; error condition. But Clojure enforces that a call to recur be in the tail position. This benefit will likely cause
+;; recur to live on, even should the JVM acquire TCO.
+;; The final benefit of recur is that it allows the forms fn and loop to act as anonymous recursion points. Why recur,
+;; indeed.
+
+
+

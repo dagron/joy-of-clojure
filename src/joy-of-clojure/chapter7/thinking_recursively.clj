@@ -207,5 +207,85 @@
 ;; The final benefit of recur is that it allows the forms fn and loop to act as anonymous recursion points. Why recur,
 ;; indeed.
 
+;; Don't forget your trampoline
+;; ----------------------------
+;; We touched briefly on the fact that Clojure can also optimize a mutually recursive function relationship, but like
+;; the tail-recursive case, it's done explicitly. Mutually recursive functions are nice for implementing finite state
+;; machines (FSAs), and in this section we'll show an example of a simple state machine modeling the operation of an
+;; elevator for a two-story building. The elevator FSA allows only four states: on the first floor with the doors open
+;; or closed, and on the second floor with the doors open or closed. The elevator can also take four distinct commands:
+;; open doors, close doors, go up, and go down. Each command is valid only in a certain context: for example, the close
+;; command is valid only when the elevator door is open. Likewise, the elevator can only go up when on the first floor
+;; and can only go down when on the second floor, and the door must be shut in both instances.
+;; You can directly translate these states and transitions into a set of mutually recursive functions by associating the
+;; states as a set of functions ff-open, ff-closed, sf-closed, and sf-open, and the transitions :open, :close, :up, and
+;; :down, as conditions for calling the next function. Let's create a function elevator that starts in the ff-open
+;; state, takes a sequence of commands, and returns true or false if the commands correspond to a legal schedule
+;; according to the FSA. For example, the sequence [:close :open :done] would be legal, if pointless, whereas
+;; [:open :open :done] wouldn't be legal, because an open door can't be reopened. The function elevator can be
+;; implemented as shown next.
 
+;; Using mutually recursive functions to implement a finite state machine
+(defn elevator [commands]
+  (letfn                                                    ; Local functions
+    [(ff-open [[_ & r]]                                     ; 1st floor open
+              "When the elevator is open on the 1st floor
+              it can either close or be done."
+              #(case _
+                :close (ff-closed r)
+                :done true
+                false))
+     (ff-closed [[_ & r]]                                   ; 1st floor closed
+                "When the elevator is closed on the 1st floor
+                it can either open or go up."
+                #(case _
+                       :open (ff-open r)
+                       :up (sf-closed r)
+                       false))
+     (sf-closed [[_ & r]]                                   ; 2nd floor closed
+                "When the elevator is clsoed on the 2nd floor
+                it can either go down or open."
+                #(case _
+                  :down (ff-closed r)
+                  :open (sf-open r)
+                  false))
+     (sf-open [[_ & r]]                                     ; 2nd floor open
+              "When the elevator is open on the 2nd floor
+              it can either close or be done."
+              #(case _
+                :close (sf-closed r)
+                :done true
+                false))]
+    (trampoline ff-open commands)))                         ; Trampoline call
+
+;; Using letfn this way allows you to create local functions that reference each other, whereas
+;; (let [ff-open #(...)] ...) wouldn't, because it executes its bindings serially. Each state function contains a case
+;; macro that dispatches to the next state based on a contextually valid command. For example, the sf-open state
+;; transitions to the sf-closed state given a :close command, returns true on a :done command (corresponding to a legal
+;; schedule), or otherwise returns false. Each state is similar in that the default case command is to return false,
+;; indicating an illegal schedule. One other point of note is that each state function returns a function returning a
+;; value, rather than directly returning the value. This is done so that the trampoline function can manage the stack on
+;; the mutually recursive calls, thus avoiding cases where a long schedule would blow the stack. The trampoline manages
+;; the process of the self calls through the placement of the functions in a list, where each function is bounced back
+;; and forth explicitly.
+;; Here's the operation of elevator given a few example schedules:
+(elevator [:close :open :close :up :open :open :done])
+;;=> false
+
+(elevator [:close :up :open :close :down :open :done])
+;;=> true
+
+;; Run at your own risk!
+(elevator (cycle [:close :open]))
+;; ... runs forever
+
+;; Like the recur special form, the trampoline for mutual recursion has a definitive syntactic and semantic cost on the
+;; structure of your code. But whereas the call to recur can be replaced by mundane recursion without too much effect,
+;; except at the edges, the rules for mutual recursion aren't general. Having said that, the actual rules are simple:
+;; 1. Make all functions participating in the mutual recursion return a function instead of their normal result.
+;;    Normally this is as simple as tacking a # onto the front of the outer level of the function body.
+;; 2. Invoke the first function in the mutual chain via the trampoline function.
+;; The final example doesn't cause a stack overflow because the trampoline function handles the calls explicitly. The
+;; typical use case for mutually recursive functions is a state machine,
+;; of which the elevator FSA is only a simple case.
 

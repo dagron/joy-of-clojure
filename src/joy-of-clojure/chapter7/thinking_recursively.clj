@@ -289,3 +289,78 @@
 ;; typical use case for mutually recursive functions is a state machine,
 ;; of which the elevator FSA is only a simple case.
 
+;; Continuation-passing style
+;; --------------------------
+;; Before wrapping up this chapter, we'll take time to talk about a style of programming not necessarily prevalent in
+;; Clojure, but more so in the functional tradition: continuation-passing style. Continuation-passing style (CPS) is a
+;; hybrid between recursion and mutual recursion, but with its own set of idioms. We won't give you a deep survey of
+;; CPS, but this subsection should provide a reasonable overview for deeper exploration if you're inclined.
+
+;; The nutshell version of CPS is that it's a way of generalizing a computation by viewing it in terms of up to three
+;; functions:
+;; * Accept -- Decides when a computation should terminate
+;; * Return -- Wraps the return values
+;; * Continuation -- Provides the next step in the computation
+
+;; There's a reason many sources on CPS use the factorial function as a base example: because it's exceptionally
+;; illustrative. Here's an example:
+(defn fac-cps [n k]
+  (letfn [(cont [v] (k (* v n)))]                           ; Next
+    (if (zero? n)                                           ; Accept
+      (k 1)                                                 ; Return
+      (recur (dec n) cont))))
+
+(defn fac [n]
+  (fac-cps n identity))
+
+(fac 10)
+;;=> 3628800
+
+;; Although this approach is definitely different than the normal functional structure, it's not exactly interesting in
+;; and of itself. The power of CPS is that you can extract more generic function builders using CPS. One such builder,
+;; shown next, can be used to make a range of functions that happen to fall into the same mold of a mathematical folding
+;; function.
+(defn mk-cps [accept? kend kont]
+  (fn [n]
+    ((fn [n k]
+       (let [cont (fn [v]                                   ; Next
+                    (k ((partial kont v) n)))]
+         (if (accept? n)                                    ; Accept
+           (k 1)                                            ; Return
+           (recur (dec n) cont))))
+      n kend)))
+
+;; If you look at the mk-cps function a little closer, you'll notice that it builds the same structured code as fac-cps.
+;; The difference is that whereas fac-cps has its continuation calls hard-coded into the source, the mk-cps takes its
+;; continuations as arguments and returns a closure that calls out to them later. Here's an example of the use of
+;; mk-cps:
+(def fac                                                    ; Factorial
+  (mk-cps zero?                                             ; ... ends when 0
+          identity                                          ; ... returns 1 when done
+          #(* %1 %2)))                                      ; ... multiplies up the stack
+
+(fac 20)
+;;=> 3628800
+
+(def tri                                                    ; Triangles
+  (mk-cps #(== 1 %)                                         ; ... ends when 1
+          identity                                          ; ... returns 0 when done
+          #(+ %1 %2)))                                      ; ... sums up the stack
+
+(tri 10)
+;;=> 55
+
+;; Although this is potentially a powerful technique, there are a number of reasons preventing its widespread adoption
+;; in Clojure:
+
+;; * Without generalized tail-call optimization, the number of continuation calls is bounded by the size of the stack.
+;;   If your applications can guarantee a bounded execution path for the CPS calls, then this may not be a problem
+;;   in practice.
+;; * In the case of exception handling, CPS can cause the point of failure to bubble out, especially on deferred
+;;   computations such as in using delay, future, or promise. In the abstract this may not seem to be a problem; but if
+;;   your continuation function is supposed to throw the error, but an outer layer function is doing so instead, then
+;;   bugs may be difficult to track down.
+;; * In a language such as Haskell that has ubiquitous lazy evaluation and pure functions, it's often not necessary to
+;;   impose a strict order of execution. One way to impose a strict order of execution is to design your programs along
+;;   the continuation-passing style. Although Clojure isn't entirely lazy, the matter of out-of-order execution isn't a
+;;   factor against CPS. But CPS isn't conducive to parallelization, which is antithetical to Clojure's nature.

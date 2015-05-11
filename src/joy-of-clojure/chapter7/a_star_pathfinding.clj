@@ -93,3 +93,124 @@
 
 ;; Now you have all the heuristics pieces in place. You may think we've simplified the heuristic needs of A*, but in
 ;; fact this is all that there is to it. The actual implementaiton is complex, and you'll tackle it next.
+
+;; The A* implementation
+;; ---------------------
+;; Before we show the implementation of A*, you need one more auxiliary function, min-by, which retrieves from a
+;; collection the minimum value dictated by some function. The implementation of min-by is naturally a straightforward
+;; higher-order function, as shown next.
+
+;; Function to retrieve the minimum value base on a criteria function
+(defn min-by [f coll]
+  (when (seq coll)
+    (reduce (fn [min other]                                 ; Process each element
+              (if (> (f min) (f other))                     ; Successively bubble the minimal value out to the return
+                other
+                min))
+            coll)))
+
+(min-by :cost [{:cost 100} {:cost 36} {:cost 9}])
+;;=> {:cost 9}
+
+;; This function will come in handy when you want to grab the cheapest path determined by the cost heuristic.
+;; We've delayed enough! Let's finally implement the A* algorithm so that you navigate around the world. The following
+;; listing shows a tail-recursive solution.
+
+;; Main A* algorithm
+(defn astar [start-yx step-est cell-costs]
+  (let [size (count cell-costs)]
+    (loop [steps 0
+           routes (vec (replicate size (vec (replicate size nil))))
+           work-todo (sorted-set [0 start-yx])]
+      (if (empty? work-todo)                                ; Check done
+        [(peek (peek routes)) :steps steps]                 ; Grab the first route
+        (let [[_ yx :as work-item] (first work-todo)        ; Get the next work
+              rest-work-todo (disj work-todo work-item)     ; Clear from todo
+              nbr-yxs (neighbors size yx)                   ; Get neighbors
+              cheapest-nbr (min-by :cost                    ; Calculate the least cost
+                                   (keep #(get-in routes %)
+                                         nbr-yxs))
+              newcost (path-cost (get-in cell-costs yx)     ; Calculate the path so far
+                                 cheapest-nbr)
+              oldcost (:cost (get-in routes yx))]
+          (if (and oldcost (>= newcost oldcost))            ; Check if new is worse
+            (recur (inc steps) routes rest-work-todo)
+            (recur (inc steps)                              ; Place a new path in the routes
+                   (assoc-in routes yx
+                             {:cost newcost
+                              :yxs (conj (:yxs cheapest-nbr [])
+                                         yx)})
+                   (into rest-work-todo                     ; Add the estimated path to the todo, and recur
+                         (map
+                           (fn [w]
+                             (let [[y x] w]
+                               [(total-cost newcost step-est size y x) w]))
+                           nbr-yxs)))))))))
+
+;; The main thrust of the astar function occurs when you check that (>= newcost oldcost). Once you've calculated newcost
+;; (the cost so far for the cheapest neighbor) and the cost-so-far oldcost, you perform one of two actions. The first
+;; action occurs when newcost is greater than or equal to oldcost: you throw away this new path, because it's clearly a
+;; worse alternative. The other action is the core functionality corresponding to the constant sorting of work-todo,
+;; based on the cost of the path as determined by the heuristic function total-cost. The soul of A* is based on the fact
+;; that the potential paths stored in work-todo are always sorted and distinct (through the use of a sorted set) based
+;; on the estimated path cost function. Each recursive loop through the astar function maintains the sorted routes based
+;; on the current-cost knowledge of the path added to the estimated total cost.
+;; The results given by the astar function for the Z-shaped world are shown in the next listing.
+
+;; Running the A* algorithm on Z World
+(astar [0 0] 900 world)
+;;=> [{:cost 17,
+;;     :yxs [[0 0] [0 1] [0 2] [0 3] [0 4] [1 4] [2 4]
+;;           [2 3] [2 2] [2 1] [2 0] [3 0] [4 0] [4 1]
+;;           [4 2] [4 3] [4 4]]}
+;;     :steps 94]
+
+;; By following the y-x indices, you'll notice that the astar function traverses Z World along the path where cost is 1.
+;; You can also build another world called Shrubbery World, shown next, that contains a single weakling shrubbery at
+;; position [0 3] (represented by the number 2), and see how astar navigates it.
+
+;; Shrubbery World
+(astar [0 0]
+       900
+       [[  1   1   1   2    1]                              ; Shrubbery is 2
+        [  1   1   1 999    1]
+        [  1   1   1 999    1]
+        [  1   1   1 999    1]
+        [  1   1   1   1    1]])                            ; Clear path
+;;=> [{:cost 9,
+;;     :yxs [[0 0] [0 1] [0 2]                              ; Sequence of squares to walk the path
+;;           [1 2]
+;;           [2 2]
+;;           [3 2]
+;;           [4 2] [4 3] [4 4]]}
+;;     :steps 134
+
+;; When tracing the best path, you see that the astar function prefers the non-shrubbery path. But what would happen if
+;; you placed a man-eating bunny along the previously safe path, represented by an ominously large number?
+
+;; Bunny World
+(astar [0 0]
+       900
+       [[  1   1   1   2    1]                              ; Shrubbery looks inviting
+        [  1   1   1 999    1]
+        [  1   1   1 999    1]
+        [  1   1   1 999    1]
+        [  1   1   1 666    1]])                            ; Bunny lies in wait
+;;=> [{:cost 10,
+;;     :yxs [[0 0] [0 1] [0 2] [0 3] [0 4]                  ; Bunny-less path
+;;           [1 4]
+;;           [2 4]
+;;           [3 4]
+;;           [4 4]]}
+;;     :steps 132]
+
+;; As expected, the astar function picks the shrubbery path (2) instead of the evil-bunny path to reach the final
+;; destination.
+
+;; Notes about the A* implementation
+;; ---------------------------------
+;; Each of the data structures, from the sorted set, to the tail-recursive astar function, to the higher-order function
+;; min-by, is functional in nature and therefore extensible as a result. We encourage you to explore the vast array of
+;; possible worlds traversable by the A* implementation and see what happens should you change the heuristic functions
+;; along the way. Clojure encourages experimentation, and by partitioning the solution this way, we've enabled you to
+;; explore different heuristics.

@@ -104,3 +104,58 @@
 ;;   these elements.
 ;; 3 The eval function receives a list data type of (+ 1 2), recognizes it as the function call form, and executes the
 ;;   + function with the arguments 1 and 2, returning the integer 3.
+
+;; Syntax-quote, unquote, and splicing
+;; You'll often hear the phrase "eval is evil," but many of the problems that arise from the use of eval occur because
+;; the bindings it uses for evaluation are global. If we could instead restrict the use of specific bindings to eval,
+;; then perhaps we could convince it to be less evil. A function in the following snippet uses three features first
+;; shown in section 2.7 -- Clojure's syntax-quote (written as a single back-quote (`)), unquote (written as ~), and
+;; unquote-splice (written as ~@) operations—to build a let structure around the form to evaluate:
+(defn contextual-eval [ctx expr]
+  (eval
+    `(let [~@(mapcat (fn [[k v]] [k `'~v]) ctx)]
+       ~expr)))
+
+;; The bindings created use the interesting `'~v pattern to garner the value of the built bindings at runtime. Observe
+;; how contextual-eval works:
+(contextual-eval '{a 1, b 2} '(+ a b))
+;;=> 3
+
+(contextual-eval '{a 1, b 2} '(let [b 1000] (+ a b)))
+;;=> 1001
+
+;; Handling nested syntax-quotes
+;; Dealing with nested syntax-quotes can at times be complicated. But you can visualize the way in which unquoting
+;; affects the nested structures as a result of repeated evaluations relative to its nesting level:
+(let [x 9, y '(- x)]
+  (println `y)
+  (println ``y)
+  (println ``~y)
+  (println ``~~y)
+  (contextual-eval {'x 36} ``~~y))
+;  user/y
+;  (quote user/y)
+;  user/y
+;  (- x)
+;;=> -36
+
+;; The nesting of the syntax-quotes in the first two println calls takes the value of y further up the abstraction
+;; ladder. But by including a single unquote in the third println, we again bring it back down. Finally, by unquoting a
+;; second time, we've created a structure that can then be evaluated -- and doing so yields the result -36. We had to
+;; use contextual-eval in the tail because core eval doesn't have access to local bindings -- only var bindings. One
+;; final note is that had we attempted to unquote one extra time, we’d have seen the exception
+;; java.lang.IllegalStateException: Var clojure.core/unquote is unbound. The reason for this error is that unquote is
+;; the way to "jump" out of a syntax-quote, and to do so more than nesting allows will cause an error. You won't use
+;; this technique in this chapter, and in most cases you won't need to utilize it unless you're planning to create
+;; macro-defining macros -- something you won't do until much later.
+
+;; When we first introduced syntax-[un]quoting, we mentioned its effects on evaluation, and in this chapter we'll expand
+;; on that theme fully as it relates to Clojure's macro facility. But the functionality of the quoting forms is
+;; orthogonal to macros, and they can be used independently. As we showed in the previous example, using quoting and
+;; unquoting in a function allows you to create an evaluation function, contextual-eval, that takes an explicit context
+;; map. Rarely will you see the use of syntax-quote outside the body of a macro, but nothing prevents it from being used
+;; this way -- and doing so is powerful. But the maximum power of quoting forms is fully realized when used with macros.
+;; Working from a model where code is data, Clojure is able to manipulate structures into different executable forms at
+;; both runtime and compile time. We've already shown how you can do this at runtime using eval and contextual-eval, but
+;; this doesn't serve the purpose of compile-time manipulation. It probably doesn’t need saying, but because this is a
+;; book about Clojure, we will: macros are the way to achieve this effect.

@@ -159,3 +159,14 @@
 ;; both runtime and compile time. We've already shown how you can do this at runtime using eval and contextual-eval, but
 ;; this doesn't serve the purpose of compile-time manipulation. It probably doesn’t need saying, but because this is a
 ;; book about Clojure, we will: macros are the way to achieve this effect.
+
+;; Macro rules of thumb
+;; Before we begin, we should list a few rules of thumb to observe when writing macros:
+;; * Don't write a macro if a function will do. Reserve macros to provide syntactic abstractions
+;;   or create binding forms.
+;; * Write an example usage.
+;; * Expand your example usage by hand.
+;; * Use macroexpand, macroexpand-1, and clojure.walk/macroexpand-all5 liberally to understand
+;;   how your implementation works.
+;; * Experiment at the REPL.
+;; * Break complicated macros into smaller functions whenever possible.

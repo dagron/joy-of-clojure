@@ -56,4 +56,49 @@
 ;; circumstances, as you desire. One thing to note about do-until is that it's meant to be used only for side effects,
 ;; because it's designed to always return nil. Macros starting with do tend to act the same way.
 
+;; Defining control structures using syntax-quote and unquoting
+;; ------------------------------------------------------------
+;; Not all control structures are as simple as do-until. Sometimes you'll want to selectively evaluate macro arguments,
+;; structures, or substructures. In this section, we'll explore one such macro named unless, implemented using unquote
+;; and unquote-splice.
+;; Ruby provides a control structure named unless that reverses the sense of a when statement, executing the body of a
+;; block when a given condition evaluates to false:
+(unless (even? 3) "Now we see it . . . ")
+;;=> "Now we see it . . . "
 
+(unless (even? 2) "Now we don't.")
+;;=> nil
+
+;; The maverick implementation of unless as demonstrated previously and as shown next is straightforward:
+(defmacro unless [condition & body]
+  `(if (not ~condition)                                     ; Unquote condition
+     (do ~@body)))                                          ; Splice body
+
+;; The body of the unless implementation uses syntax-quote, unquote, and unquote-splice. Syntax-quote allows the if form
+;; to act as a template for the expression that any use of the macro becomes when expanded. The unquote and
+;; splicing-unquote provide the "blanks" where the values for the parameters condition and body will be inserted.
+;; You can see unless in action next:
+(unless true (println "nope"))
+;;=> nil
+
+(unless false (println "yep!"))
+;; yep!
+;;=> nil
+
+;; Because unless relies on the result of a condition for its operation, it's imperative that it evaluate the condition
+;; part using unquote. If we didn't use unquote in our example, then instead of evaluating a function (even? 3), it
+;; would attempt to resolve a namespace var named condition that may not exist -- and if it did exist, it might be
+;; arbitrarily truthy at the time of the macro call. Some of the unintended consequences of this mistake are shown here:
+(macroexpand `(if (not condition) "got it"))                ; Missing ~
+;;=> (if (clojure.core/not user/condition) "got it")        ; Resolved to var
+
+(eval `(if (not condition) "got it"))
+;;=> java.lang.RuntimeException: No such var: user/condition ; Unbound var
+
+(def condition false)                                       ; Bound to var
+(eval `(if (not condition) "got it"))                       ; Resolved to var
+;;=> "got it"
+
+;; Clearly this isn't the desired behavior. Instead, by unquoting the condition local, you ensure that the function call
+;; is used instead. It's easy to forget to add an unquote to the body of a macro, and depending on the condition of your
+;; runtime environment, the problem may not be immediately obvious.

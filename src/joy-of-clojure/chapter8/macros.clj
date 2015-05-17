@@ -143,7 +143,7 @@
 ;; ladder. But by including a single unquote in the third println, we again bring it back down. Finally, by unquoting a
 ;; second time, we've created a structure that can then be evaluated -- and doing so yields the result -36. We had to
 ;; use contextual-eval in the tail because core eval doesn't have access to local bindings -- only var bindings. One
-;; final note is that had we attempted to unquote one extra time, we’d have seen the exception
+;; final note is that had we attempted to unquote one extra time, we'd have seen the exception
 ;; java.lang.IllegalStateException: Var clojure.core/unquote is unbound. The reason for this error is that unquote is
 ;; the way to "jump" out of a syntax-quote, and to do so more than nesting allows will cause an error. You won't use
 ;; this technique in this chapter, and in most cases you won't need to utilize it unless you're planning to create
@@ -157,7 +157,7 @@
 ;; this way -- and doing so is powerful. But the maximum power of quoting forms is fully realized when used with macros.
 ;; Working from a model where code is data, Clojure is able to manipulate structures into different executable forms at
 ;; both runtime and compile time. We've already shown how you can do this at runtime using eval and contextual-eval, but
-;; this doesn't serve the purpose of compile-time manipulation. It probably doesn’t need saying, but because this is a
+;; this doesn't serve the purpose of compile-time manipulation. It probably doesn't need saying, but because this is a
 ;; book about Clojure, we will: macros are the way to achieve this effect.
 
 ;; Macro rules of thumb

@@ -62,6 +62,6 @@ x
 ;;=> #'user/x
 
 ;; Lisp programs in general (and Clojure programs specifically) use macros of this sort to vastly reduce the boilerplate
-;; needed to perform common tasks. Throughout this chapter, you'll see macros that combine forms, so there’s no need to
+;; needed to perform common tasks. Throughout this chapter, you'll see macros that combine forms, so there's no need to
 ;; dwell on the matter here. Instead, we'll move on to a macro domain that does just that, with the added bonus of
 ;; performing some interesting transformations in the process.
